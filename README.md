@@ -11,7 +11,7 @@ As of now, Adamant supports the following features:
 - Downloadable JSON schema and its form data
 - API-based integration as various form submission functionalities
 
-A live demo of Adamant (client only) is available at: https://csihda.github.io/adamant/.
+A live demo of Adamant (client only) is available at: https://plasma-mds.github.io/adamant/.
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/csihda/adamant/blob/main/LICENSE)
 
