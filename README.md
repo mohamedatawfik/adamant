@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/csihda/adamant/6b2a50dff162b0fc7af0dc6873d7e9d34cfa93aa/src/assets/adamant-header-christmas2022.svg" alt="drawing" style="width:50%;"/>
+# <img src="https://raw.githubusercontent.com/csihda/adamant/6b2a50dff162b0fc7af0dc6873d7e9d34cfa93aa/src/assets/adamant-header-5.svg" alt="drawing" style="width:50%;"/>
 
 Adamant is a JSON schema-based metadata creation tool presented in a user-friendly interface. Adamant aims to ease the integration of various research data management (RDM) workflows into the everyday research routine of especially small independent laboratories, which hopefully leads to the generation of research data that adhere to the FAIR (findable, accessible, interoperable, reusable) principles.
 As of now, Adamant supports the following features:
@@ -66,7 +66,7 @@ By default, the deployed system can be accessed at `http://localhost:3000`.
 
 # Citation
 
-Please cite this paper if you use this code/tool. 
+Please cite this paper if you use this code/tool in your publication. 
 ```
 @article{ 10.12688/f1000research.110875.2,
 author = {Chaerony Siffa, I and Schäfer, J and Becker, MM},
