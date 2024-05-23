@@ -33,6 +33,7 @@ import FormReviewBeforeSubmit from "../components/FormReviewBeforeSubmit";
 import changeKeywords from "../components/utils/changeKeywords";
 //import QPTDATLogo from "../assets/adamant-header-5.svg";
 import QPTDATLogo from "../assets/adamant-header-5.svg";
+import EMPIRFLogo from "../assets/EMPI_Logo_reactive-fluids_Color_Black.png"
 import createDescriptionListFromJSON from "../components/utils/createDescriptionListFromJSON";
 import HelpIcon from "@material-ui/icons/HelpOutlineRounded";
 import { Tooltip } from "@material-ui/core";
@@ -116,6 +117,7 @@ const AdamantMain = () => {
   const [retrievedTags, setRetrievedTags] = useState([]);
   const [SEMSelectedDevice, setSEMSelectedDevice] = useState("");
   const [HeaderImage, setHeaderImage] = useState(QPTDATLogo);
+  const [EMPIRFHeaderImage, setEMPIRFHeaderImage] = useState(EMPIRFLogo);
   const [openFormReviewDialog, setOpenFormReviewDialog] = useState(false);
   const [openJobRequestDialog, setOpenJobRequestDialog] = useState(false);
   const [jobRequestSchemas, setJobRequestSchemas] = useState([]);
@@ -263,6 +265,43 @@ const AdamantMain = () => {
     }
   }, [onlineMode]);
 
+  // Handle save schema button click
+  const handleOnClickSaveSchema = () => {
+    let content = { ...schema }; // Assuming schemaContent is an object
+
+    // Calculate hash for the content using CryptoJS
+    let sha256_hash = CryptoJS.SHA256(JSON.stringify(content)).toString();
+
+    const schemaData = {
+      schemaName: `jsonschema-${sha256_hash}`, // Use the hash as the schema name
+      schema: JSON.stringify(content, null, 2),
+    };
+
+    fetch('/api/save_schema', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(schemaData),
+    })
+      .then(response => {
+        if (response.ok) {
+          console.log('Schema saved successfully');
+          toast.success('Schema saved successfully!', {
+            toastId: 'savingSchemaSuccess',
+          });
+        } else {
+          throw new Error('Failed to save schema');
+        }
+      })
+      .catch(error => {
+        console.error('Failed to save schema:', error);
+        toast.error('Error saving schema. Please try again.', {
+          toastId: 'savingSchemaError',
+        });
+      });
+  };
+  
   // handle select schema on change
   const handleSelectSchemaOnChange = (schemaName) => {
     if (schemaName === null) {
@@ -317,6 +356,7 @@ const AdamantMain = () => {
           //let SEMlogo = require("../assets/sem-header-picture.png");
           //setHeaderImage(SEMlogo["default"]);
           setHeaderImage(QPTDATLogo);
+          setEMPIRFHeaderImage(EMPIRFHeaderImage);
           setEditMode(false);
           setSubmitText(
             submitTextList[jobRequestSchemas.indexOf(convertedSchema["title"])]
@@ -324,10 +364,12 @@ const AdamantMain = () => {
         } catch (error) {
           console.log(error);
           setHeaderImage(QPTDATLogo);
+          setEMPIRFHeaderImage(EMPIRFHeaderImage);
           setEditMode(true);
         }
       } else {
         setHeaderImage(QPTDATLogo);
+        setEMPIRFHeaderImage(EMPIRFHeaderImage);
         setEditMode(true);
       }
 
@@ -374,6 +416,7 @@ const AdamantMain = () => {
               //let SEMlogo = require("../assets/sem-header-picture.png");
               //setHeaderImage(SEMlogo["default"]);
               setHeaderImage(QPTDATLogo);
+              setEMPIRFHeaderImage(EMPIRFHeaderImage);
               setEditMode(false);
               setSubmitText(
                 submitTextList[
@@ -383,10 +426,12 @@ const AdamantMain = () => {
             } catch (error) {
               console.log(error);
               setHeaderImage(QPTDATLogo);
+              setEMPIRFHeaderImage(EMPIRFHeaderImage);
               setEditMode(true);
             }
           } else {
             setHeaderImage(QPTDATLogo);
+            setEMPIRFHeaderImage(EMPIRFHeaderImage);
             setEditMode(true);
           }
 
@@ -443,6 +488,7 @@ const AdamantMain = () => {
   // clear schema on-click handle
   const clearSchemaOnClick = () => {
     setHeaderImage(QPTDATLogo);
+    setEMPIRFHeaderImage(EMPIRFHeaderImage);
     setDisable(true);
     setRenderReady(false);
     setSchema(null);
@@ -489,6 +535,7 @@ const AdamantMain = () => {
         //let SEMlogo = require("../assets/sem-header-picture.png");
         //setHeaderImage(SEMlogo["default"]);
         setHeaderImage(QPTDATLogo);
+        setEMPIRFHeaderImage(EMPIRFHeaderImage);
         setEditMode(false);
         setSubmitText(
           submitTextList[jobRequestSchemas.findIndex(convertedSchema["title"])]
@@ -496,10 +543,12 @@ const AdamantMain = () => {
       } catch (error) {
         console.log(error);
         setHeaderImage(QPTDATLogo);
+        setEMPIRFHeaderImage(EMPIRFHeaderImage);
         setEditMode(true);
       }
     } else {
       setHeaderImage(QPTDATLogo);
+      setEMPIRFHeaderImage(EMPIRFHeaderImage);
       setEditMode(true);
     }
 
@@ -1286,10 +1335,15 @@ const AdamantMain = () => {
       >
         <div style={{ paddingBottom: "5px" }}>
           <img
-            style={{ height: "100px", borderRadius: "5px" }}
+            style={{ height: "100px", borderRadius: "2px", marginRight: "40px"}}
             alt="header"
             src={HeaderImage !== undefined ? HeaderImage : QPTDATLogo}
           />
+          <img
+            style={{ height: "70px", borderRadius: "5px" }}
+            alt="empi-rf"
+            src={EMPIRFHeaderImage !== undefined ? EMPIRFHeaderImage : EMPIRFLogo}
+          />   
           {!inputMode ? (
             <div
               style={{
@@ -1518,6 +1572,14 @@ const AdamantMain = () => {
                 color="primary"
               >
                 Proceed
+              </Button>
+              <Button
+                onClick={() => handleOnClickSaveSchema()}
+                style={{ float: "right" }}
+                variant="contained"
+                color="primary"
+              >
+                Save Schema
               </Button>
               <Button
                 style={{ float: "right", marginRight: "5px" }}
