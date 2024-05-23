@@ -1,65 +1,72 @@
 import React, { useState, useEffect } from "react";
 import { useHistory } from 'react-router-dom';
 import "./styles.css";
-import { Route, Switch, Redirect } from "react-router-dom";
+import { Route, Switch, Redirect, PrivateRoute } from "react-router-dom";
 import AdamantMain from "./pages/AdamantMain";
 import "cors";
 import packageJson from "../package.json";
 import { ToastContainer } from "react-toastify";
 import Login from "../src/components/Login";
+import Button from "@material-ui/core/Button";
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false); // State to track login status
-  const history = useHistory();
 
   // check if adamant endpoint exists in the homepage
   const homepage = packageJson["homepage"];
   const adamantEndpoint = homepage.includes("/adamant");
+  const history = useHistory();
 
   useEffect(() => {
-    const sessionToken = localStorage.getItem('sessionToken');
-    if (sessionToken) {
-      setLoggedIn(true);
-    }
+      console.log('refreshed ');
+      setLoggedIn(localStorage.getItem('sessionToken') != undefined);
   }, []);
 
   const handleLoginSuccess = () => {
+    console.log('loginSuccessCalled');
     setLoggedIn(true);
+    fetchProtectedData();
   };
-  // const handleLoginSuccess = async (username, password) => {
-  //   try {
-  //     const response = await fetch('/api/login', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({ username, password }),
-  //     });
-      
-  //     if (response.ok) {
-  //       const data = await response.json();
-  //       const token = data.token;
 
-  //       // Set session state to true
-  //       setLoggedIn(true);
-  //       // Store session token in localStorage
-  //       localStorage.setItem('sessionToken', token);
-  //     } else {
-  //       // Handle error if login fails
-  //       console.error('Login failed:', response.statusText);
-  //       // You can display an error message to the user
-  //     }
-  //   } catch (error) {
-  //     console.error('Login failed:', error);
-  //     // You can display an error message to the user
-  //   }
-  // };
+  const fetchProtectedData = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      console.log('No token found, user is not logged in');
+      return;
+    }
+  
+    try {
+      const response = await fetch('/api/protected', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Protected data:', data);
+      } else {
+        console.log('Failed to fetch protected data');
+      }
+    } catch (error) {
+      console.error('Error fetching protected data:', error);
+    }
+  };
 
-  const handleLogout = () => {
+  const handleLogout = (e) => {
     // Clear session state
     setLoggedIn(false);
     // Remove session token from localStorage
     localStorage.removeItem('sessionToken');
+  };
+
+  const ProtectedRoute = ({ user, redirectPath = '/login' }) => {
+    if (!user == undefined) {
+      return <Redirect to={redirectPath} replace />;
+    }
+  
+    return <AdamantMain onLogout={handleLogout} />;
   };
 
   if (adamantEndpoint) {
@@ -70,19 +77,15 @@ export default function App() {
         <div className="the_app">
           <Switch>
             <Route exact path="/">
-              {loggedIn ? (
-                <Redirect to="/adamant" />
-              ) : (
-                <Login onLoginSuccess={handleLoginSuccess} />
-              )}
+                <Redirect to="/login" />
             </Route>
-            <Route exact path="/adamant">
-              {loggedIn ? (
-                <AdamantMain onLogout={handleLogout} />
-              ) : (
+            <Route exact path="/logout">
                 <Redirect to="/" />
-              )}
             </Route>
+            <Route exact path="/login">
+                <Login onLoginSuccess={handleLoginSuccess} />
+            </Route>
+            <Route exact path="/adamant" element={<ProtectedRoute user={localStorage.getItem('sessionToken')} />} />
           </Switch>
         </div>
         <ToastContainer

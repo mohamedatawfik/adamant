@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from "react";
 //import { makeStyles } from "@material-ui/core/styles";
 import { useDropzone } from "react-dropzone";
+import { useHistory } from 'react-router-dom';
 //import QPTDATLogo from "../assets/header-image.png";
 import FormRenderer from "../components/FormRenderer";
 import Button from "@material-ui/core/Button";
@@ -89,7 +90,7 @@ const removeEmpty = (obj) => {
   return Object.keys(obj).length > 0 || obj instanceof Array ? obj : undefined;
 };
 
-const AdamantMain = () => {
+const AdamantMain = ({ onLogout }) => {
   // state management
   const [disable, setDisable] = useState(true);
   const [schemaMessage, setSchemaMessage] = useState(null);
@@ -268,22 +269,22 @@ const AdamantMain = () => {
   // Handle save schema button click
   const handleOnClickSaveSchema = () => {
     let content = { ...schema }; // Assuming schemaContent is an object
-
-    // Calculate hash for the content using CryptoJS
-    let sha256_hash = CryptoJS.SHA256(JSON.stringify(content)).toString();
-
-    const schemaData = {
-      schemaName: `jsonschema-${sha256_hash}`, // Use the hash as the schema name
-      schema: JSON.stringify(content, null, 2),
-    };
-
-    fetch('/api/save_schema', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(schemaData),
-    })
+  
+    // Prompt the user to enter a name for the schema
+    const schemaName = window.prompt('Enter a name for the schema:');
+  
+    if (schemaName) { // If a name is provided by the user
+      const schemaData = {
+        schemaName: schemaName, // Use the user-provided name as the schema name
+        schema: JSON.stringify(content, null, 2),
+      };
+      fetch('/api/save_schema', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(schemaData),
+      })
       .then(response => {
         if (response.ok) {
           console.log('Schema saved successfully');
@@ -300,8 +301,22 @@ const AdamantMain = () => {
           toastId: 'savingSchemaError',
         });
       });
+    } else {
+      console.error('Error saving schema. Please Enter a Schema Name.');
+      toast.error('Error saving schema. Please Enter a Schema Name.', {
+        toastId: 'savingSchemaError',
+      });
+    }
   };
   
+  const history = useHistory();
+  const handleLogout = () => {
+    // Remove session token from localStorage
+    localStorage.removeItem('sessionToken');
+    // Optionally, redirect to login page
+    history.push('/logout');
+  };
+
   // handle select schema on change
   const handleSelectSchemaOnChange = (schemaName) => {
     if (schemaName === null) {
@@ -1628,7 +1643,16 @@ const AdamantMain = () => {
             </Button>
           )}
         </div>
-        <div style={{ padding: "10px", color: "grey" }}>ADAMANT v1.2.0</div>
+        {/* <div style={{ padding: "10px", color: "grey" }}>ADAMANT v1.2.0</div>
+        <Button variant="contained" color="primary" onClick={handleLogin}>
+        Login
+        </Button> */}
+        <div style={{ padding: "10px", color: "grey" }}>
+        <div>ADAMANT v1.2.0</div>
+        <Button variant="contained" color="primary" onClick={handleLogout}>
+          Logout
+        </Button>
+        </div>
       </FormContext.Provider>
       <CreateELabFTWExperimentDialog
         setTags={setTags}

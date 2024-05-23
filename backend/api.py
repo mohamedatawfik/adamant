@@ -1,4 +1,5 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
+from flask_jwt_extended import create_access_token
 from flask_restful import Api
 import elabapy
 import json
@@ -17,6 +18,9 @@ app = Flask(__name__, static_folder='../build',
             static_url_path='/')  # for Gunicorn deployment
 # app = Flask(__name__)
 api = Api(app)
+app.config['EMPIRF_SECRET_KEY'] = 'EPMIRF_SECURITY'
+
+jwt = JWTManager(app)
 
 
 # convert json form data to eLabFTW description list
@@ -107,6 +111,46 @@ def get_schemas():
         list_of_schemas["schema"].append(content)
         list_of_schemas["schemaName"].append(filename)
     return list_of_schemas
+
+@app.route('/api/save_schema', methods=["POST"])
+def save_schema():
+    data = request.json
+    schema_name = data.get("schemaName")
+    schema_content = data.get("schema")
+
+    if schema_name and schema_content:
+        try:
+            with open(f"./schemas/{schema_name}.json", "w", encoding="utf-8") as file:
+                file.write(schema_content)
+            return {"message": f"Schema '{schema_name}' saved successfully"}, 200
+        except Exception as e:
+            return {"error": str(e)}, 500
+    else:
+        return {"error": "Schema name or content not provided"}, 400
+
+# Login endpoint
+@app.route('/api/login', methods=["POST"])
+def login():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
+
+    # Check if username and password match the hardcoded admin credentials
+    if username == 'admin' and password == 'admin':
+        # Generate token
+        token = create_access_token(identity=username)
+        # Return token to frontend
+        return jsonify({"token": token}), 200
+    else:
+        # If credentials are incorrect, return error message
+        return jsonify({"error": "Invalid username or password"}), 401
+
+#Get protected Data
+@app.route('/api/protected', methods=["GET"])
+@jwt_required()
+def protected():
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
 
 
 # get available tags from eLabFTW
