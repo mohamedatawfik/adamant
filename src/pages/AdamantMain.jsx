@@ -2,6 +2,9 @@ import React, { useCallback, useState } from "react";
 //import { makeStyles } from "@material-ui/core/styles";
 import { useDropzone } from "react-dropzone";
 import { useHistory } from 'react-router-dom';
+import { Provider, useDispatch, useSelector } from 'react-redux';
+import store from '../redux/store';
+import { loginSuccess, logoutSuccess } from '../redux/actions/authActions';
 //import QPTDATLogo from "../assets/header-image.png";
 import FormRenderer from "../components/FormRenderer";
 import Button from "@material-ui/core/Button";
@@ -124,6 +127,8 @@ const AdamantMain = ({ onLogout }) => {
   const [jobRequestSchemas, setJobRequestSchemas] = useState([]);
   const [submitTextList, setSubmitTextList] = useState([]);
   const [submitText, setSubmitText] = useState("Submit Job Request");
+  const loggedIn = useSelector(state => state.auth.loggedIn);
+  const dispatch = useDispatch();
   // for dropdown buttons
   const [anchorEl, setAnchorEl] = useState(null);
   const [
@@ -313,8 +318,9 @@ const AdamantMain = ({ onLogout }) => {
   const handleLogout = () => {
     // Remove session token from localStorage
     localStorage.removeItem('sessionToken');
+    dispatch(logoutSuccess());
     // Optionally, redirect to login page
-    history.push('/logout');
+    history.push('/');
   };
 
   // handle select schema on change
@@ -1374,8 +1380,8 @@ const AdamantMain = ({ onLogout }) => {
                   handleSelectSchemaOnChange(newValue)
                 }
                 id="select-available-schema"
-                options={schemaNameList}
-                style={{ width: "100%" }}
+                options={schemaNameList.slice().sort((a, b) => a.localeCompare(b))}
+                style={{ width: "2600px" }}
                 renderInput={(params) => (
                   <TextField
                     variant="outlined"

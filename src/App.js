@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useHistory } from 'react-router-dom';
 import "./styles.css";
 import { Route, Switch, Redirect, PrivateRoute } from "react-router-dom";
+import { Provider, useDispatch, useSelector } from 'react-redux';
+import store from './redux/store';
+import { loginSuccess, logoutSuccess } from './redux/actions/authActions';
 import AdamantMain from "./pages/AdamantMain";
 import "cors";
 import packageJson from "../package.json";
@@ -10,22 +13,31 @@ import Login from "../src/components/Login";
 import Button from "@material-ui/core/Button";
 
 export default function App() {
-  const [loggedIn, setLoggedIn] = useState(false); // State to track login status
+  // const [loggedIn, setLoggedIn] = useState(false); // State to track login status
 
   // check if adamant endpoint exists in the homepage
   const homepage = packageJson["homepage"];
   const adamantEndpoint = homepage.includes("/adamant");
   const history = useHistory();
+  const loggedIn = useSelector(state => state.auth.loggedIn);
+  const dispatch = useDispatch();
+
+  // useEffect(() => {
+  //     console.log('refreshed ');
+  //     setLoggedIn(localStorage.getItem('sessionToken') != undefined);
+  // }, []);
 
   useEffect(() => {
-      console.log('refreshed ');
-      setLoggedIn(localStorage.getItem('sessionToken') != undefined);
+    const sessionToken = localStorage.getItem('sessionToken');
+    if (sessionToken) {
+      dispatch(loginSuccess());
+    }
   }, []);
 
   const handleLoginSuccess = () => {
     console.log('loginSuccessCalled');
-    setLoggedIn(true);
-    fetchProtectedData();
+    dispatch(loginSuccess());
+    // fetchProtectedData();
   };
 
   const fetchProtectedData = async () => {
@@ -56,7 +68,7 @@ export default function App() {
 
   const handleLogout = (e) => {
     // Clear session state
-    setLoggedIn(false);
+    dispatch(logoutSuccess());
     // Remove session token from localStorage
     localStorage.removeItem('sessionToken');
   };
@@ -77,6 +89,20 @@ export default function App() {
         <div className="the_app">
           <Switch>
             <Route exact path="/">
+              {loggedIn ? (
+                <Redirect to="/adamant" />
+              ) : (
+                <Login onLoginSuccess={handleLoginSuccess} />
+              )}
+            </Route>
+            <Route exact path="/adamant">
+              {loggedIn ? (
+                <AdamantMain onLogout={handleLogout} />
+              ) : (
+                <Redirect to="/" />
+              )}
+            </Route>
+            {/* <Route exact path="/">
                 <Redirect to="/login" />
             </Route>
             <Route exact path="/logout">
@@ -85,7 +111,7 @@ export default function App() {
             <Route exact path="/login">
                 <Login onLoginSuccess={handleLoginSuccess} />
             </Route>
-            <Route exact path="/adamant" element={<ProtectedRoute user={localStorage.getItem('sessionToken')} />} />
+            <Route exact path="/adamant" element={<ProtectedRoute user={localStorage.getItem('sessionToken')} />} /> */}
           </Switch>
         </div>
         <ToastContainer
