@@ -12,6 +12,9 @@ import mimetypes
 import io
 import base64
 from datetime import date
+import pymysql
+# from watchdog.observers import Observer
+# from watchdog.events import FileSystemEventHandler
 
 
 app = Flask(__name__, static_folder='../build',
@@ -20,8 +23,92 @@ app = Flask(__name__, static_folder='../build',
 api = Api(app)
 app.config['EMPIRF_SECRET_KEY'] = 'EPMIRF_SECURITY'
 
-jwt = JWTManager(app)
+# jwt = JWTManager(app)
 
+# Database configuration
+DB_HOST = '127.0.0.1'
+DB_PORT = 3306
+DB_USER = 'new_user'
+DB_PASSWORD = 'new_password'
+DB_NAME = 'experiment_data'
+
+# class DataHandler(FileSystemEventHandler):
+#     def __init__(self):
+#         pass
+
+#     def table_exists(self, connection, table_name):
+#         with connection.cursor() as cursor:
+#             cursor.execute("SHOW TABLES LIKE %s", (table_name,))
+#             result = cursor.fetchone()
+#             return result is not None
+
+#     def entry_exists(self, connection, table_name, identifier):
+#         with connection.cursor() as cursor:
+#             cursor.execute(f"SELECT 1 FROM `{table_name}` WHERE identifier = %s", (identifier,))
+#             result = cursor.fetchone()
+#             return result is not None
+
+#     def process_json_file(self, file_path, action):
+#         with open(file_path, 'r') as file:
+#             data = json.load(file)
+#             schema_id = data.get('schema_id')
+#             identifier = data.get('identifier')
+
+#             if not schema_id or not identifier:
+#                 print("Missing schema_id or identifier in the JSON file.")
+#                 return
+
+#             conn = pymysql.connect(
+#                 host=DB_HOST,
+#                 port=DB_PORT,
+#                 user=DB_USER,
+#                 password=DB_PASSWORD,
+#                 database=DB_NAME
+#             )
+
+#             try:
+#                 if not self.table_exists(conn, schema_id):
+#                     print(f"Table `{schema_id}` does not exist.")
+#                     return
+
+#                 if action == 'create':
+#                     if self.entry_exists(conn, schema_id, identifier):
+#                         print(f"Entry with identifier `{identifier}` already exists in table `{schema_id}`.")
+#                         return
+
+#                     placeholders = ', '.join(['%s'] * len(data))
+#                     columns = ', '.join(data.keys())
+#                     sql = f"INSERT INTO `{schema_id}` ({columns}) VALUES ({placeholders})"
+#                     with conn.cursor() as cursor:
+#                         cursor.execute(sql, tuple(data.values()))
+
+#                 elif action == 'delete':
+#                     if not self.entry_exists(conn, schema_id, identifier):
+#                         print(f"Entry with identifier `{identifier}` does not exist in table `{schema_id}`.")
+#                         return
+
+#                     sql = f"DELETE FROM `{schema_id}` WHERE identifier = %s"
+#                     with conn.cursor() as cursor:
+#                         cursor.execute(sql, (identifier,))
+
+#                 conn.commit()
+#             finally:
+#                 conn.close()
+
+#     def on_created(self, event):
+#         if not event.is_directory and event.src_path.endswith('.json'):
+#             self.process_json_file(event.src_path, 'create')
+
+#     def on_deleted(self, event):
+#         if not event.is_directory and event.src_path.endswith('.json'):
+#             self.process_json_file(event.src_path, 'delete')
+
+# def start_watcher(path):
+#     event_handler = DataHandler()
+#     observer = Observer()
+#     observer.schedule(event_handler, path, recursive=True)
+#     observer.start()
+#     return observer
 
 # convert json form data to eLabFTW description list
 def findBase64(data, prevKey, emptyArray):
@@ -71,6 +158,73 @@ def findRequesterName(jsdata, requesterNameKeyword, result):
             result = findRequesterName(
                 jsdata[key], requesterNameKeyword, result)
     return result
+
+def map_json_type_to_sql(json_type):
+    type_mapping = {
+        "string": "VARCHAR(255)",
+        "number": "FLOAT",
+        "integer": "INT",
+        "boolean": "BOOLEAN",
+        "file upload(string)": "VARCHAR(255)",
+        "object": "JSON",
+        "array": "JSON"
+    }
+    return type_mapping.get(json_type, "VARCHAR(255)")
+
+def extract_properties(properties, parent_key=''):
+    items = {}
+    for key, value in properties.items():
+        # Adding parent property before the parameters under while separating with a _ 
+        # full_key = f"{parent_key}_{key}" if parent_key else key 
+        full_key = f"{key}" if parent_key else key
+        if value['type'] == 'object' and 'properties' in value:
+            items.update(extract_properties(value['properties'], full_key))
+        else:
+            items[full_key] = value
+    return items
+
+def create_table_from_schema(schema_name, schema_content):
+    # Parse the schema content to extract properties and types
+    # print('@@@@@@@@@@@@@@@ INSIDE CREATE @@@@@@@@@@@@@@@@@')
+    schema = json.loads(schema_content)
+    # print('@@@@@@@@@@@@@@@ Schema @@@@@@@@@@@@@@@@@',schema)
+    properties = schema.get("properties", {})
+    # print('@@@@@@@@@@@@@@@ PROPERTIES @@@@@@@@@@@@@@@@@',properties)
+    
+    # Extract all properties, including nested ones
+    flattened_properties = extract_properties(properties)
+    # print('@@@@@@@@@@@@@@@ Flattened Properties @@@@@@@@@@@@@@@@@', flattened_properties)
+
+    columns = []
+    for prop, details in flattened_properties.items():
+        column_type = map_json_type_to_sql(details.get("type", "string"))
+        columns.append(f"`{prop}` {column_type}")
+
+    columns_str = ", ".join(columns)
+    create_table_query = f"CREATE TABLE IF NOT EXISTS `{schema_name}` ({columns_str});"
+    print('@@@@@@@@@@@@@@@ DB QUERY @@@@@@@@@@@@@@@@@',create_table_query)
+    
+
+    # Connect to the database and execute the query
+    try:
+        connection = pymysql.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+    except pymysql.Error as e:
+        print(f'Error connecting to MariaDB: {e}')
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(create_table_query)
+        connection.commit()
+        print('@@@@@@@@@@@@@@@ COMMIT SUCCESFULL @@@@@@@@@@@@@@@@@')
+    finally:
+        connection.close()
+        print('@@@@@@@@@@@@@@@ CONNECTION IS CLOSED @@@@@@@@@@@@@@@@@')
 
 
 # @app.route('/')
@@ -122,6 +276,9 @@ def save_schema():
         try:
             with open(f"./schemas/{schema_name}.json", "w", encoding="utf-8") as file:
                 file.write(schema_content)
+                # Create the corresponding table in the database
+                print('@@@@@@@@@@@@@@@ CREATE IS CALLED @@@@@@@@@@@@@@@@@')
+                create_table_from_schema(schema_name, schema_content)
             return {"message": f"Schema '{schema_name}' saved successfully"}, 200
         except Exception as e:
             return {"error": str(e)}, 500
@@ -138,7 +295,7 @@ def login():
     # Check if username and password match the hardcoded admin credentials
     if username == 'admin' and password == 'admin':
         # Generate token
-        token = create_access_token(identity=username)
+        token = 'dummy_token_for_admin'
         # Return token to frontend
         return jsonify({"token": token}), 200
     else:
@@ -146,11 +303,11 @@ def login():
         return jsonify({"error": "Invalid username or password"}), 401
 
 #Get protected Data
-@app.route('/api/protected', methods=["GET"])
-@jwt_required()
-def protected():
-    current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
+# @app.route('/api/protected', methods=["GET"])
+# @jwt_required()
+# def protected():
+#     current_user = get_jwt_identity()
+#     return jsonify(logged_in_as=current_user), 200
 
 
 # get available tags from eLabFTW
