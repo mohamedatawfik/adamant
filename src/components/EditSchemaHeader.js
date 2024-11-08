@@ -53,6 +53,7 @@ const EditSchemaHeader = ({ schemaVersion, title, description, schemaID, openDia
     const [_description, _setDescription] = useState(description);
     const [_schemaID, _setSchemaID] = useState(schemaID);
     const { updateParent, convertedSchema, setSchemaSpecification } = useContext(FormContext);
+    const [errorMessage, setErrorMessage] = useState(''); // State to store error messages
 
 
     const allowedSchemaDrafts = ["http://json-schema.org/draft-04/schema#", "http://json-schema.org/draft-07/schema#"]
@@ -209,7 +210,16 @@ const EditSchemaHeader = ({ schemaVersion, title, description, schemaID, openDia
             case 'version':
                 return _setSchemaVersion(event.target.value)
             case 'id':
-                return _setSchemaID(event.target.value)
+                // MariaDB/MySQL table name validation
+                const tableNameRegex = /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/;
+                if (!tableNameRegex.test(event.target.value)) {
+                    // Handle invalid table name (e.g., set an error state or show a message)
+                    setErrorMessage('Invalid table name. It must start with a letter or underscore and contain only letters, numbers, and underscores (up to 64 characters).');
+                } else {
+                    // Clear the error and set the schema ID if valid
+                    setErrorMessage('');
+                    return _setSchemaID(event.target.value);
+                }
             default:
                 return null;
         }
@@ -255,7 +265,7 @@ const EditSchemaHeader = ({ schemaVersion, title, description, schemaID, openDia
                                     ))
                                 }
                             </TextField>
-                            <TextField margin='normal' onChange={event => handleChangeUISchema(event, "id")} style={{ marginTop: "10px" }} defaultValue={schemaID} variant="outlined" fullWidth={true} label={"Schema ID"} helperText={"ID or URI for this schema if available."} />
+                            <TextField margin='normal' onChange={event => handleChangeUISchema(event, "id")} style={{ marginTop: "10px" }} defaultValue={schemaID} variant="outlined" fullWidth={true} label={"Schema ID"} helperText={errorMessage || 'ID for this schema if available.'} error={!!errorMessage} />
                             <TextField margin='normal' onChange={event => handleChangeUISchema(event, "title")} style={{ marginTop: "10px" }} defaultValue={title} variant="outlined" fullWidth={true} label={"Schema Title"} helperText={"Title of the schema."} />
                             <TextField margin='normal' onChange={event => handleChangeUISchema(event, "description")} style={{ marginTop: "10px" }} defaultValue={description} variant="outlined" fullWidth={true} label={"Schema Description"} multiline rows={3} helperText="Description of the schema. Be more descriptive won't hurt." />
                         </FormControl>

@@ -274,15 +274,31 @@ const AdamantMain = ({ onLogout }) => {
   // Handle save schema button click
   const handleOnClickSaveSchema = () => {
     let content = { ...schema }; // Assuming schemaContent is an object
+    // Log the content to see its structure
+    console.log('Schema content:', content);
   
-    // Prompt the user to enter a name for the schema
-    const schemaName = window.prompt('Enter a name for the schema:');
+    // Extract the SchemaID from the schema properties
+    const schemaID = content?.$id;
+
+    // Log the extracted SchemaID
+    console.log('Extracted SchemaID:', schemaID);
+
+    // Check if SchemaID is present
+    if (!schemaID) {
+      console.error('SchemaID is missing or empty.');
+      toast.error('Schema ID cannot be empty. Please provide a valid Schema ID.', {
+        toastId: 'schemaIDError',
+      });
+      return; // Exit the function if SchemaID is empty
+    }
+
+    // Proceed with saving the schema if SchemaID is valid
+    const schemaData = {
+      schemaName: schemaID, // Use the SchemaID as the schema name
+      schema: JSON.stringify(content, null, 2), // Save the schema content
+    };
   
-    if (schemaName) { // If a name is provided by the user
-      const schemaData = {
-        schemaName: schemaName, // Use the user-provided name as the schema name
-        schema: JSON.stringify(content, null, 2),
-      };
+    if (schemaData) { // If a name is provided by the user
       fetch('/api/save_schema', {
         method: 'POST',
         headers: {
@@ -527,11 +543,71 @@ const AdamantMain = ({ onLogout }) => {
     setJsonData({});
     setSelectedSchemaName("");
 
+    const now = new Date();
+    
+    // ISO 8601 Date: 'YYYY-MM-DD'
+    const isoDate = now.toISOString().split('T')[0];
+    
+    // ISO 8601-1:2019 Time: 'HH:mm:ss'
+    const isoTime = now.toISOString().split('T')[1].split('.')[0];  // Extracts time without milliseconds
+
+
     // always use newer schema specification
     let schemaBlueprint = {
       $schema: "http://json-schema.org/draft-07/schema#",
       type: "object",
-      properties: {},
+      properties: {
+        "FileTypeIdentifier": {
+          "title": "FileTypeIdentifier",
+          "description": "to allow crawlers to idendify our JSON files",
+          "type": "string",
+          "default": "This is a EMPI-RF metadata File. Do not change this for crawler identification",
+          "enum": [
+            "This is a EMPI-RF metadata File. Do not change this for crawler identification"
+          ]
+        },
+        "Identifier": {
+          "title": "Identifier",
+          "description": "Unique identifier for the dataset",
+          "type": "string"
+        },
+        "Creator": {
+          "title": "Creator",
+          "description": "The name of the primary researcher",
+          "type": "string"
+        },
+        "ORCID": {
+          "title": "ORCID",
+          "description": "ID of the primary researcher",
+          "type": "string"
+        },
+        "Date": {
+          "title": "Date",
+          "description": "The date when the experiment started in ISO 8601",
+          "type": "string",
+          "defaultValue": isoDate
+        },
+        "Time": {
+          "title": "Time",
+          "description": "The time when the experiment started in ISO 8601-1:2019",
+          "type": "string",
+          "defaultValue": isoTime
+        },
+        "Project": {
+          "title": "Project",
+          "description": "Name of the related project",
+          "type": "string"
+        },
+      },
+      required: [
+        "FileTypeIdentifier",
+        "Identifier",
+        "Creator",
+        "ORCID",
+        "Date",
+        "Time",
+        "Project"
+      ]
     };
     const obj = JSON.parse(JSON.stringify(schemaBlueprint));
 
@@ -866,6 +942,8 @@ const AdamantMain = ({ onLogout }) => {
       return;
     }
 
+    // Adding SchemaID parameter containing the selected schema name
+    content.SchemaID = selectedSchemaName.replace(/\.json$/, '');
     // calculate hash for the content
     // calculate hash using CryptoJS
     let sha256_hash = CryptoJS.SHA256(JSON.stringify(content));
@@ -1587,14 +1665,6 @@ const AdamantMain = ({ onLogout }) => {
                 Back to Edit Mode
               </Button>
               <Button
-                onClick={() => handleOnClickProceedButton()}
-                style={{ float: "right" }}
-                variant="contained"
-                color="primary"
-              >
-                Proceed
-              </Button>
-              <Button
                 onClick={() => handleOnClickSaveSchema()}
                 style={{ float: "right" }}
                 variant="contained"
@@ -1610,7 +1680,7 @@ const AdamantMain = ({ onLogout }) => {
                 aria-expanded={open ? "true" : undefined}
                 onClick={handleClick}
               >
-                <DownloadIcon /> Download Schema/Data
+                <DownloadIcon /> Save Dataset
               </Button>
               <Menu
                 id="demo-positioned-menu"

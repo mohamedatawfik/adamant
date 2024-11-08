@@ -201,6 +201,8 @@ def create_table_from_schema(schema_name, schema_content):
         columns.append(f"`{prop}` {column_type}")
 
     columns_str = ", ".join(columns)
+    drop_table_query = f"DROP TABLE IF EXISTS `{schema_name}`;"
+    print('@@@@@@@@@@@@@@@ DB QUERY @@@@@@@@@@@@@@@@@', drop_table_query)
     create_table_query = f"CREATE TABLE IF NOT EXISTS `{schema_name}` ({columns_str});"
     print('@@@@@@@@@@@@@@@ DB QUERY @@@@@@@@@@@@@@@@@',create_table_query)
     
@@ -219,6 +221,8 @@ def create_table_from_schema(schema_name, schema_content):
         print(f'Error connecting to MariaDB: {e}')
     try:
         with connection.cursor() as cursor:
+            cursor.execute(drop_table_query)
+            print('@@@@@@@@@@@@@@@ DROP TABLE EXECUTED @@@@@@@@@@@@@@@@@')
             cursor.execute(create_table_query)
         connection.commit()
         print('@@@@@@@@@@@@@@@ COMMIT SUCCESFULL @@@@@@@@@@@@@@@@@')
@@ -269,16 +273,31 @@ def get_schemas():
 @app.route('/api/save_schema', methods=["POST"])
 def save_schema():
     data = request.json
+    print(f"Received data: {data}")
     schema_name = data.get("schemaName")
     schema_content = data.get("schema")
 
     if schema_name and schema_content:
         try:
+            schema_dict = json.loads(schema_content)
+            schema_id = schema_dict.get("$id")
+            if not schema_id:
+                return {"error": "$id is missing in the schema"}, 400
+
+            schema_dict["properties"]["SchemaID"] = {
+                "title": "SchemaID",
+                "description": "Unique identifier for the schema",
+                "type": "string",
+                "enum": [schema_id]
+            }
+            
+            # Convert the updated schema dictionary back to JSON
+            updated_schema_content = json.dumps(schema_dict, indent=2)
             with open(f"./schemas/{schema_name}.json", "w", encoding="utf-8") as file:
-                file.write(schema_content)
+                file.write(updated_schema_content)
                 # Create the corresponding table in the database
                 print('@@@@@@@@@@@@@@@ CREATE IS CALLED @@@@@@@@@@@@@@@@@')
-                create_table_from_schema(schema_name, schema_content)
+                create_table_from_schema(schema_name, updated_schema_content)
             return {"message": f"Schema '{schema_name}' saved successfully"}, 200
         except Exception as e:
             return {"error": str(e)}, 500
