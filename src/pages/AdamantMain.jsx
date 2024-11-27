@@ -109,6 +109,7 @@ const AdamantMain = ({ onLogout }) => {
   const [inputMode, setInputMode] = useState(false);
   const [convertedSchema, setConvertedSchema] = useState(null);
   const [createScratchMode, setCreateScratchMode] = useState(false);
+  const [browseSchemaMode, setBrowseSchemaMode] = useState(false);
   const [jsonData, setJsonData] = useState({});
   const [descriptionList, setDescriptionList] = useState("");
   const [schemaWithValues, setSchemaWithValues] = useState({});
@@ -233,13 +234,27 @@ const AdamantMain = ({ onLogout }) => {
           console.log("SUCCESS");
 
           // do this to preserver the order
-          let sch = [];
-          status["schema"].forEach((element) => {
-            sch.push(JSON.parse(element));
-          });
+          // let sch = [];
+          // status["schema"].forEach((element) => {
+	  //  sch.push(JSON.parse(element));
+          // });
+          // Initialize arrays to hold filtered results
+            let sch = [];
+            let schNames = [];
 
-          setSchemaList(sch);
-          setSchemaNameList(status["schemaName"]);
+            // Loop through both arrays and filter out any pairs with null or empty schema content
+            status["schema"].forEach((schemaContent, index) => {
+                let schemaName = status["schemaName"][index];
+                if (schemaContent && schemaContent.trim() && schemaName && schemaName.trim()) {
+                    // Parse and push to the filtered arrays if both schema and schemaName are valid
+                    sch.push(JSON.parse(schemaContent));
+                    schNames.push(schemaName);
+                }
+            });
+
+            // Set state with filtered schema and schemaName lists, maintaining the order
+            setSchemaList(sch);
+            setSchemaNameList(schNames);
         },
         error: function () {
           console.log("ERROR");
@@ -496,13 +511,15 @@ const AdamantMain = ({ onLogout }) => {
   const onDrop = useCallback(
     (acceptedFile) => {
       // process the schema, validation etc
+      setBrowseSchemaMode(true);
+      console.log("In onDrop compilation: browseSchemaMode =", browseSchemaMode);
       checkSchemaValidity(acceptedFile);
-
       // store schema file in the state
       // update states
       setRenderReady(false);
       setDisable(true);
       setCreateScratchMode(false);
+      console.log("In onDrop compilation: createSchratchMode =", createScratchMode);
       setJsonData({});
       setSelectedSchemaName("");
     },
@@ -533,6 +550,10 @@ const AdamantMain = ({ onLogout }) => {
     setSchemaMessage();
     setCreateScratchMode(false);
     setSelectedSchemaName("");
+  };
+  const handleBrowseSchema = () => {
+    setBrowseSchemaMode(true);
+    console.log("In handleBrowseSchema compilation: browseSchemaMode =", browseSchemaMode);
   };
 
   // create new schema from scratch
@@ -585,13 +606,13 @@ const AdamantMain = ({ onLogout }) => {
           "title": "Date",
           "description": "The date when the experiment started in ISO 8601",
           "type": "string",
-          "defaultValue": isoDate
+          "default": isoDate
         },
         "Time": {
           "title": "Time",
           "description": "The time when the experiment started in ISO 8601-1:2019",
           "type": "string",
-          "defaultValue": isoTime
+          "default": isoTime
         },
         "Project": {
           "title": "Project",
@@ -621,6 +642,7 @@ const AdamantMain = ({ onLogout }) => {
 
     // update states
     setCreateScratchMode(true);
+    console.log("In handlCreateFromScratch compilation: createScratchMode =", createScratchMode);
     setSchema(obj);
     let oriSchema = JSON.parse(JSON.stringify(obj));
     setOriginalSchema(oriSchema);
@@ -657,11 +679,15 @@ const AdamantMain = ({ onLogout }) => {
   const compileOnClick = () => {
     let value = schema;
 
+    console.log("Before compilation: browseSchemaMode =", browseSchemaMode);
+    console.log("Before compilation: createSchratchMode =", createScratchMode);
+
     const [valid, message] = validateSchemaAgainstSpecification(
       JSON.parse(JSON.stringify(schema)),
       schemaSpecification
     );
     if (valid) {
+
       setInputMode(true);
       setSchema(value);
       setEditMode(false);
@@ -1664,15 +1690,37 @@ const AdamantMain = ({ onLogout }) => {
               >
                 Back to Edit Mode
               </Button>
-              <Button
-                onClick={() => handleOnClickSaveSchema()}
-                style={{ float: "right" }}
-                variant="contained"
-                color="primary"
-              >
-                Save Schema
-              </Button>
-              <Button
+              {createScratchMode || browseSchemaMode === true ? (
+              <>
+                <Button
+                  onClick={() => handleOnClickSaveSchema()}
+                  style={{ float: "right" }}
+                  variant="contained"
+                  color="primary"
+                >
+                  Save Schema
+                </Button>
+              </>
+              ) : null}
+	            {createScratchMode || browseSchemaMode === false ? (
+              	<>
+                  <Button
+                    onClick={() => handleDownloadJsonSchema()}
+                    style={{ float: "right" }}
+                    variant="outlined"
+                  >
+                   <DownloadIcon /> Download Schema
+                  </Button>
+                  <Button
+                    onClick={() => handleDownloadFormData()}
+                    style={{ float: "right", marginRight: "5px" }}
+                    variant="outlined"
+                  >
+                    <DownloadIcon /> Download Dataset
+                  </Button>
+                </>
+              ) : null} 
+             {/* <Button
                 style={{ float: "right", marginRight: "5px" }}
                 id="demo-positioned-button"
                 aria-controls={open ? "demo-positioned-menu" : undefined}
@@ -1706,7 +1754,7 @@ const AdamantMain = ({ onLogout }) => {
                 <MenuItem onClick={handleDownloadDescriptionList}>
                   Download Description List
                 </MenuItem>
-              </Menu>
+              </Menu>*/}
             </div>
           ) : (
             <Button

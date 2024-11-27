@@ -199,6 +199,9 @@ def create_table_from_schema(schema_name, schema_content):
     for prop, details in flattened_properties.items():
         column_type = map_json_type_to_sql(details.get("type", "string"))
         columns.append(f"`{prop}` {column_type}")
+        
+    # Append documentLocation per default
+    columns.append("`documentlocation` VARCHAR(255)")
 
     columns_str = ", ".join(columns)
     drop_table_query = f"DROP TABLE IF EXISTS `{schema_name}`;"
