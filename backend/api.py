@@ -307,6 +307,180 @@ def save_schema():
     else:
         return {"error": "Schema name or content not provided"}, 400
 
+# API Endpoint: Get list of tables
+@app.route("/api/tables", methods=["GET"])
+def get_tables():
+    try:
+        connection = pymysql.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+    except pymysql.Error as e:
+        print(f'Error connecting to MariaDB: {e}')
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SHOW TABLES")
+            tables = [table[0] for table in cursor.fetchall()]
+            return jsonify(tables)
+    except Exception as e:
+        return jsonify({"error": f"Error retrieving tables: {str(e)}"}), 500
+
+# API Endpoint: Get data from a specific table
+@app.route("/api/data/<string:table>", methods=["GET"])
+def get_table_data(table):
+    try:
+        connection = pymysql.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+    except pymysql.Error as e:
+        print(f'Error connecting to MariaDB: {e}')
+    try:
+        with connection.cursor() as cursor:
+            query = f"SELECT * FROM `{table}`"
+            cursor.execute(query)
+            results = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+            data = [dict(zip(columns, row)) for row in results]
+            return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": f"Error retrieving data from table {table}: {str(e)}"}), 500
+
+# API Endpoint: Get column information of a table
+@app.route("/api/columns/<string:table>", methods=["GET"])
+def get_columns(table):
+    try:
+        connection = pymysql.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+    except pymysql.Error as e:
+        print(f'Error connecting to MariaDB: {e}')
+    try:
+        with connection.cursor() as cursor:
+            query = f"DESCRIBE `{table}`"
+            cursor.execute(query)
+            results = cursor.fetchall()
+            columns = [
+                {"name": col[0], "type": col[1], "nullable": col[2] == "YES",
+                 "key": col[3], "default": col[4], "extra": col[5]}
+                for col in results
+            ]
+            return jsonify(columns)
+    except Exception as e:
+        return jsonify({"error": f"Error retrieving column info for table {table}: {str(e)}"}), 500
+
+# API Endpoint: Search for a string in all tables
+@app.route("/api/search/<string:search_string>", methods=["GET"])
+def search_tables(search_string):
+    try:
+        connection = pymysql.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+    except pymysql.Error as e:
+        print(f'Error connecting to MariaDB: {e}')
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SHOW TABLES")
+            tables = [table[0] for table in cursor.fetchall()]
+            search_results = []
+
+            for table in tables:
+                cursor.execute(f"DESCRIBE `{table}`")
+                columns = [col[0] for col in cursor.fetchall()]
+
+                if not columns:
+                    continue
+
+                query = f"SELECT * FROM `{table}` WHERE CONCAT_WS(' ', {', '.join(columns)}) LIKE %s"
+                cursor.execute(query, (f"%{search_string}%",))
+                results = cursor.fetchall()
+
+                for row in results:
+                    search_results.append({"table": table, "data": dict(zip(columns, row))})
+
+            return jsonify(search_results)
+    except Exception as e:
+        return jsonify({"error": f"Error searching tables: {str(e)}"}), 500
+
+# API Endpoint: Perform LEFT JOIN on two tables
+@app.route("/api/left-join", methods=["GET"])
+def left_join():
+    try:
+        connection = pymysql.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+    except pymysql.Error as e:
+        print(f'Error connecting to MariaDB: {e}')
+    table1 = request.args.get("table1")
+    table2 = request.args.get("table2")
+    column1 = request.args.get("column1")
+    column2 = request.args.get("column2")
+
+    # Validate input parameters
+    if not all([table1, table2, column1, column2]):
+        return jsonify({"error": "Missing parameters: table1, table2, column1, column2"}), 400
+
+    try:
+        with connection.cursor() as cursor:
+            # 1. SELECT all from table A (experiments)
+            cursor.execute(f"SELECT * FROM `{table1}`")
+            table_a_data = cursor.fetchall()
+
+            # 2. SELECT all from table B (conditions)
+            cursor.execute(f"SELECT * FROM `{table2}`")
+            table_b_data = cursor.fetchall()
+
+            # Build lookup for Table B
+            b_lookup = {row[column2]: row for row in table_b_data}
+
+            # 4. Merge Table A with Table B based on sample_id
+            merged_data = []
+            for a_row in table_a_data:
+                sample_id = a_row[column1]
+                b_row = b_lookup.get(sample_id, {})
+
+                # Prefix B fields to avoid conflict
+                b_row_prefixed = {f"{k}_condition": v for k, v in b_row.items() if k != column2}
+                # Merge rows: Table A + Table B (prefixed)
+                merged_row = {**a_row, **b_row_prefixed}
+                merged_data.append(merged_row)
+
+            if merged_data:
+                columns = list(merged_data[0].keys())
+            else:
+                columns = []
+            return jsonify({
+                "columns": columns,
+                "data": merged_data
+            })
+            # return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": f"Error performing LEFT JOIN: {str(e)}"}), 500
+
 # Login endpoint
 @app.route('/api/login', methods=["POST"])
 def login():
