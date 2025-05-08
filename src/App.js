@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { useHistory } from 'react-router-dom';
+import React, { useEffect } from "react";
 import "./styles.css";
-import { Route, Switch, Redirect, PrivateRoute } from "react-router-dom";
-import { Provider, useDispatch, useSelector } from 'react-redux';
-import store from './redux/store';
+import { Route, Switch, Redirect} from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
 import { loginSuccess, logoutSuccess } from './redux/actions/authActions';
 import AdamantMain from "./pages/AdamantMain";
 import "cors";
 import packageJson from "../package.json";
 import { ToastContainer } from "react-toastify";
 import Login from "../src/components/Login";
-import Button from "@material-ui/core/Button";
 
 export default function App() {
   // const [loggedIn, setLoggedIn] = useState(false); // State to track login status
@@ -18,7 +15,6 @@ export default function App() {
   // check if adamant endpoint exists in the homepage
   const homepage = packageJson["homepage"];
   const adamantEndpoint = homepage.includes("/adamant");
-  const history = useHistory();
   const loggedIn = useSelector(state => state.auth.loggedIn);
   const dispatch = useDispatch();
 
@@ -32,7 +28,7 @@ export default function App() {
     if (sessionToken) {
       dispatch(loginSuccess());
     }
-  }, []);
+  }, [dispatch]);
 
   const handleLoginSuccess = () => {
     console.log('loginSuccessCalled');
@@ -40,45 +36,11 @@ export default function App() {
     // fetchProtectedData();
   };
 
-  const fetchProtectedData = async () => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      console.log('No token found, user is not logged in');
-      return;
-    }
-  
-    try {
-      const response = await fetch('/api/protected', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-  
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Protected data:', data);
-      } else {
-        console.log('Failed to fetch protected data');
-      }
-    } catch (error) {
-      console.error('Error fetching protected data:', error);
-    }
-  };
-
   const handleLogout = (e) => {
     // Clear session state
     dispatch(logoutSuccess());
     // Remove session token from localStorage
     localStorage.removeItem('sessionToken');
-  };
-
-  const ProtectedRoute = ({ user, redirectPath = '/login' }) => {
-    if (!user == undefined) {
-      return <Redirect to={redirectPath} replace />;
-    }
-  
-    return <AdamantMain onLogout={handleLogout} />;
   };
 
   if (adamantEndpoint) {
@@ -102,16 +64,6 @@ export default function App() {
                 <Redirect to="/" />
               )}
             </Route>
-            {/* <Route exact path="/">
-                <Redirect to="/login" />
-            </Route>
-            <Route exact path="/logout">
-                <Redirect to="/" />
-            </Route>
-            <Route exact path="/login">
-                <Login onLoginSuccess={handleLoginSuccess} />
-            </Route>
-            <Route exact path="/adamant" element={<ProtectedRoute user={localStorage.getItem('sessionToken')} />} /> */}
           </Switch>
         </div>
         <ToastContainer

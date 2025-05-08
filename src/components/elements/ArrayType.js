@@ -1,7 +1,6 @@
 import React, { useState, useContext, useEffect, useCallback } from "react";
 import { makeStyles, withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import Divider from '@material-ui/core/Divider';
 import { AccordionDetails } from '@material-ui/core';
 import { Button } from '@material-ui/core';
 import EditIcon from '@material-ui/icons/Edit';
@@ -21,7 +20,6 @@ import set from "set-value";
 import MuiAccordion from '@material-ui/core/Accordion';
 import MuiAccordionSummary from '@material-ui/core/AccordionSummary';
 import { toast } from "react-toastify";
-import getValueInSchemaFullPath from "../utils/getValueInSchemaFullPath";
 import getFileIndex from "../utils/getFileIndex";
 import { useDropzone } from "react-dropzone";
 
@@ -183,7 +181,17 @@ const ArrayType = ({ adamant_field_error, adamant_error_description, maxItems, m
         } else {
             //setOpenReadingFilesDialogForArrayType(false)
         }
-    }, [currentFiles, dataInputItems])
+    }, [    
+        currentFiles,
+        dataInputItems,
+        convertedSchema,
+        field_items,
+        handleAddArrayItem,
+        handleLoadedFiles,
+        maxItems,
+        path,
+        updateParent,
+    ])
 
     // update description text state as soon as new field description is obtained
     // also create new items based on the uploaded files if applicable (only for resource array!)

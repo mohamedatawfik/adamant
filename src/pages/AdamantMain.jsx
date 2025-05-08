@@ -2,49 +2,40 @@ import React, { useCallback, useState } from "react";
 //import { makeStyles } from "@material-ui/core/styles";
 import { useDropzone } from "react-dropzone";
 import { useHistory } from 'react-router-dom';
-import { Provider, useDispatch, useSelector } from 'react-redux';
-import store from '../redux/store';
-import { loginSuccess, logoutSuccess } from '../redux/actions/authActions';
+import { useDispatch} from 'react-redux';
+import { logoutSuccess } from '../redux/actions/authActions';
 //import QPTDATLogo from "../assets/header-image.png";
 import FormRenderer from "../components/FormRenderer";
 import Button from "@material-ui/core/Button";
-import { IconButton, TextField } from "@material-ui/core";
+import { TextField } from "@material-ui/core";
 import Divider from "@material-ui/core/Divider";
 import { FormContext } from "../FormContext";
 import array2object from "../components/utils/array2object";
 import object2array from "../components/utils/object2array";
-import { Menu, MenuItem } from "@material-ui/core";
 import DownloadIcon from "@material-ui/icons/GetApp";
 import set from "set-value";
 import getValue from "../components/utils/getValue";
 import CryptoJS from "crypto-js";
 import deleteKeySchema from "../components/utils/deleteKeySchema";
 import validateAgainstSchema from "../components/utils/validateAgainstSchema";
-import CreateELabFTWExperimentDialog from "../components/CreateELabFTWExperimentDialog";
 import { useEffect } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import prepareDataForDescList from "../components/utils/prepareDataForDescList";
 import array2objectAnyOf from "../components/utils/array2objectAnyOf";
 import SchemaOne from "../schemas/all-types.json";
 import SchemaTwo from "../schemas/demo-schema.json";
 import SchemaThree from "../schemas/example-experiment-schema.json";
 import SchemaFour from "../schemas/example-request-schema.json";
 import SchemaFive from "../schemas/plasma-mds.json";
-import fillValueWithEmptyString from "../components/utils/fillValueWithEmptyString";
 import convData2FormData from "../components/utils/convData2FormData";
-import FormReviewBeforeSubmit from "../components/FormReviewBeforeSubmit";
 import changeKeywords from "../components/utils/changeKeywords";
 //import QPTDATLogo from "../assets/adamant-header-5.svg";
 import QPTDATLogo from "../assets/adamant-header-5.svg";
 import EMPIRFLogo from "../assets/EMPI_Logo_reactive-fluids_Color_Black.png"
-import createDescriptionListFromJSON from "../components/utils/createDescriptionListFromJSON";
-import HelpIcon from "@material-ui/icons/HelpOutlineRounded";
-import { Tooltip } from "@material-ui/core";
 import validateSchemaAgainstSpecification from "../components/utils/validateSchemaAgainstSpecification";
 import { Autocomplete } from "@mui/material";
-import getPaths from "../components/utils/getPaths";
 import checkIDexistence from "../components/utils/checkIDexistence";
+// import ReactMuiDemoWrapper from '../components/ReactMuiDemoWrapper';
 
 // function that receive the schema and convert it to Form/json data blueprint
 // also to already put the default value to this blueprint
@@ -114,42 +105,24 @@ const AdamantMain = ({ onLogout }) => {
   const [descriptionList, setDescriptionList] = useState("");
   const [schemaWithValues, setSchemaWithValues] = useState({});
   const [schemaSpecification, setSchemaSpecification] = useState("");
-  const [token, setToken] = useState("");
-  const [eLabURL, setELabURL] = useState("");
-  const [experimentTitle, setExperimentTitle] = useState("");
   const [onlineMode, setOnlineMode] = useState(false);
-  const [tags, setTags] = useState([]);
-  const [retrievedTags, setRetrievedTags] = useState([]);
   const [SEMSelectedDevice, setSEMSelectedDevice] = useState("");
   const [HeaderImage, setHeaderImage] = useState(QPTDATLogo);
   const [EMPIRFHeaderImage, setEMPIRFHeaderImage] = useState(EMPIRFLogo);
-  const [openFormReviewDialog, setOpenFormReviewDialog] = useState(false);
-  const [openJobRequestDialog, setOpenJobRequestDialog] = useState(false);
   const [jobRequestSchemas, setJobRequestSchemas] = useState([]);
   const [submitTextList, setSubmitTextList] = useState([]);
-  const [submitText, setSubmitText] = useState("Submit Job Request");
-  const loggedIn = useSelector(state => state.auth.loggedIn);
+  const [setSubmitText] = useState("Submit Job Request");
+  const [browseExpirementsMode, setBrowseExpirementsMode] = useState(false);
   const dispatch = useDispatch();
   // for dropdown buttons
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [
-    openCreateElabFTWExperimentDialog,
-    setOpenCreateElabFTWExperimentDialog,
-  ] = useState(false);
-  const open = Boolean(anchorEl);
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const [setAnchorEl] = useState(null);
+
   const handleClose = () => {
     setAnchorEl(null);
   }; //
 
   // loaded files object
   const [loadedFiles, setLoadedFiles] = useState([]);
-
-  // FilesDialog
-  const [openFilesDialog, setOpenFilesDialog] = useState(false);
-  const [filesDialogContent, setFilesDialogContent] = useState(["", "", ""]);
 
   let implementedFieldTypes = [
     "string",
@@ -523,7 +496,7 @@ const AdamantMain = ({ onLogout }) => {
       setJsonData({});
       setSelectedSchemaName("");
     },
-    [setRenderReady, jobRequestSchemas, submitTextList]
+    [browseSchemaMode, checkSchemaValidity, createScratchMode, setRenderReady]
   );
   //
 
@@ -551,10 +524,6 @@ const AdamantMain = ({ onLogout }) => {
     setCreateScratchMode(false);
     setSelectedSchemaName("");
   };
-  const handleBrowseSchema = () => {
-    setBrowseSchemaMode(true);
-    console.log("In handleBrowseSchema compilation: browseSchemaMode =", browseSchemaMode);
-  };
 
   // create new schema from scratch
   const createSchemaFromScratch = () => {
@@ -563,6 +532,7 @@ const AdamantMain = ({ onLogout }) => {
     setSchemaMessage();
     setJsonData({});
     setSelectedSchemaName("");
+    setBrowseExpirementsMode(false);
 
     const now = new Date();
     
@@ -673,6 +643,13 @@ const AdamantMain = ({ onLogout }) => {
 
     setDisable(false);
     setRenderReady(true);
+  };
+
+  const handleBrowseExpirementsResults = () => {
+    setBrowseExpirementsMode(true);
+    setRenderReady(false);
+    setEditMode(false);
+    setCreateScratchMode(false);
   };
 
   // compile on-click handle
@@ -985,399 +962,6 @@ const AdamantMain = ({ onLogout }) => {
     handleClose();
   };
 
-  // handle download json schema
-  const handleDownloadDescriptionList = () => {
-    //let content = { ...jsonData };
-    let convSchemaData = { ...convertedSchema };
-    let content = convData2FormData(
-      JSON.parse(JSON.stringify(convSchemaData["properties"]))
-    );
-    let contentSchema = { ...schema };
-
-    // get rid of empty values in content
-    content = removeEmpty(content);
-    if (content === undefined) {
-      content = {};
-    }
-
-    //
-    // validate jsonData against its schema before download
-    //
-    const [valid, messages] = validateAgainstSchema(content, contentSchema);
-    setErrorStuffUponValidation(messages);
-    if (!valid | (Object.keys(content).length === 0)) {
-      toast.error(
-        <>
-          <div>
-            <strong>Form data is not valid.</strong>
-          </div>
-          <div style={{ paddingBottom: "10px" }}>Check your inputs!</div>
-          {messages.map((item, index) => {
-            return <div key={index}>{index + 1 + ". " + item.message}</div>;
-          })}
-        </>,
-        {
-          autoClose: 10000,
-          toastId: "formDataError",
-        }
-      );
-      return;
-    }
-    // Create elab ftw description list and store it to the description list state
-    let convSch = { ...convertedSchema };
-    // use this if we want to show all fields in description list
-    let convProp = JSON.parse(JSON.stringify(convSch["properties"]));
-    fillValueWithEmptyString(convProp);
-    let cleaned = prepareDataForDescList(convProp); // skip keyword that has value of array with objects as its elements
-    //let cleaned = removeEmpty(prepareDataForDescList(convSch["properties"]));
-    if ((cleaned === undefined) | (cleaned === {})) {
-      toast.error(
-        <>
-          <div>
-            <strong>
-              Unable to download. Form data is not valid. Maybe empty?
-            </strong>
-          </div>
-          <div style={{ paddingBottom: "10px" }}>Check your inputs!</div>
-        </>,
-        {
-          autoClose: 10000,
-          toastId: "formDataError",
-        }
-      );
-      return;
-    }
-    // create description list
-    let footnote = `<div> This template was generated with <span><a title=https://github.com/csihda/adamant href=https://github.com/csihda/adamant>ADAMANT v1.2.0</a></span> </div>`;
-    let descList = createDescriptionListFromJSON(
-      cleaned,
-      convSch,
-      convProp,
-      schema,
-      footnote,
-      false
-    ); // false means without styling
-
-    setDescriptionList(descList);
-
-    let sha256_hash = CryptoJS.SHA256(descList);
-    let a = document.createElement("a");
-    let file = new Blob([descList], {
-      type: "text/html",
-    });
-    a.href = URL.createObjectURL(file);
-    a.download = `desclist-${sha256_hash}.tpl`;
-    a.click();
-
-    handleClose();
-  };
-
-  // get available tags from elabftw
-  const getTagsELabFTW = () => {
-    var $ = require("jquery");
-    $.ajax({
-      type: "POST",
-      url: "/api/get_tags",
-      dataType: "json",
-      data: {
-        eLabURL: eLabURL,
-        eLabToken: token,
-      },
-      success: function (status) {
-        console.log("Tags retrieved successfully");
-        //let arr = [];
-        //for (let i = 0; i < status.length; i++) {
-        //  arr.push(status[i]["tag"]);
-        //}
-        setRetrievedTags(status);
-        toast.success(`Successfully retrieved the tags!`, {
-          toastId: "fetchingTagsSuccess",
-        });
-      },
-      error: function (status) {
-        console.log("Failed to retrieve tags");
-        console.log(status);
-        toast.error(`Failed to get the tags!\nMaybe wrong url or token?`, {
-          toastId: "fetchingTagsError",
-        });
-      },
-    });
-  };
-
-  // create an experiment in elabftw based on the schema and data
-  const createExperimentELabFTW = () => {
-    // validate the data first using ajv
-    //let content = { ...jsonData };
-    let convSchemaData = { ...convertedSchema };
-    let content = convData2FormData(
-      JSON.parse(JSON.stringify(convSchemaData["properties"]))
-    );
-
-    let contentSchema = { ...schema };
-
-    // get rid of empty values in content
-    content = removeEmpty(content);
-    if (content === undefined) {
-      content = {};
-    }
-    console.log("content", content);
-    //console.log("loadedFiles", loadedFiles)
-
-    /*
-    // get the paths where the uploaded files are from content
-    let fileEntries = []
-    for (let i=0; i<loadedFiles.length; i++) {
-      let file = loadedFiles[i]
-      let fileName = file["name"]
-      let fileType = file["type"]
-      let fileSize = file["size"]
-      //console.log(file["name"])
-      fileEntries.push(`fileupload:${fileType};${fileName};${fileSize}`)
-    }
-    //console.log(fileEntries)
-    let paths = []
-    for (let i=0; i<fileEntries.length; i++) {
-      let path = getPaths(content, fileEntries[i])
-      paths.push(path)
-    }
-    console.log(paths)
-
-    // read files from loadedFiles then insert it to the content
-    */
-
-    //
-    // validate jsonData against its schema before submission
-    //
-    const [valid, messages] = validateAgainstSchema(
-      content,
-      JSON.parse(JSON.stringify(contentSchema))
-    );
-    setErrorStuffUponValidation(messages);
-    if (!valid | (Object.keys(content).length === 0)) {
-      toast.error(
-        <>
-          <div>
-            <strong>Form data is not valid.</strong>
-          </div>
-          <div style={{ paddingBottom: "10px" }}>Check your inputs!</div>
-          {messages.map((item, index) => {
-            return <div key={index}>{index + 1 + ". " + item.message}</div>;
-          })}
-        </>,
-        {
-          autoClose: 10000,
-          toastId: "formDataError",
-        }
-      );
-      // clear states
-      setToken("");
-      setExperimentTitle("");
-      setTags([]);
-      return;
-    }
-    // call create experiment api
-    console.log("tags:", tags);
-    var $ = require("jquery");
-    $.ajax({
-      type: "POST",
-      url: "/api/create_experiment",
-      async: false,
-      dataType: "json",
-      data: {
-        javascript_data: JSON.stringify(content),
-        schema: JSON.stringify(contentSchema),
-        eLabURL: eLabURL,
-        eLabToken: token,
-        title: experimentTitle,
-        body: descriptionList,
-        tags: JSON.stringify(tags),
-      },
-      success: function (status) {
-        console.log("SUCCESS");
-        console.log(status);
-
-        // close submit dialog
-        setOpenCreateElabFTWExperimentDialog(false);
-        toast.success(
-          `Successfully created an experiment with id: ${status["experimentId"]}!`,
-          {
-            toastId: "createExperimentSuccess",
-          }
-        );
-
-        // clear states
-        setToken("");
-        setExperimentTitle("");
-        setRetrievedTags([]);
-        setTags([]);
-      },
-      error: function (status) {
-        console.log("ERROR");
-        console.log(status);
-
-        // close submit dialog
-        setOpenCreateElabFTWExperimentDialog(false);
-        toast.error(
-          `Failed to create an experiment!\nMaybe wrong url or token?`,
-          {
-            toastId: "createExperimentError",
-          }
-        );
-        // clear states
-        setToken("");
-        setExperimentTitle("");
-        setRetrievedTags([]);
-        setTags([]);
-      },
-    });
-  };
-
-  // submit sem job request
-  const submitJobRequest = () => {
-    let convSchemaData = { ...convertedSchema };
-    let content = convData2FormData(
-      JSON.parse(JSON.stringify(convSchemaData["properties"]))
-    );
-
-    let contentSchema = { ...schema };
-
-    // get rid of empty values in content
-    content = removeEmpty(content);
-    if (content === undefined) {
-      content = {};
-    }
-
-    var $ = require("jquery");
-    $.ajax({
-      type: "POST",
-      url: "/api/submit_job_request",
-      async: false,
-      dataType: "json",
-      data: {
-        javascript_data: JSON.stringify(content),
-        schema: JSON.stringify(contentSchema),
-        body: descriptionList,
-      },
-      success: function (status) {
-        if (status["response"] === 200) {
-          console.log("SUCCESS");
-          console.log(status);
-
-          // close submit dialog
-          setOpenJobRequestDialog(false);
-          toast.success(`${status.responseText}`, {
-            toastId: "jobRequestSubmitSuccess",
-          });
-        } else {
-          console.log("ERROR");
-          console.log(status);
-
-          // close submit dialog
-          setOpenJobRequestDialog(false);
-          toast.error(`${status.responseText}`, {
-            toastId: "jobRequestSubmitError",
-          });
-        }
-      },
-      error: function (status) {
-        console.log("ERROR");
-        console.log(status);
-
-        // close submit dialog
-        setOpenJobRequestDialog(false);
-        toast.error(`${status.responseText}`, {
-          toastId: "jobRequestSubmitError",
-        });
-      },
-    });
-  };
-
-  const handleOnClickProceedButton = () => {
-    // Create elab ftw description list and store it to the description list state
-    let convSch = { ...convertedSchema };
-    // use this if we want to show all fields in description list
-    let convProp = JSON.parse(JSON.stringify(convSch["properties"]));
-    fillValueWithEmptyString(convProp);
-    let cleaned = prepareDataForDescList(convProp);
-    //let cleaned = removeEmpty(prepareDataForDescList(convSch["properties"]));
-    if ((cleaned === undefined) | (cleaned === {})) {
-      toast.error(
-        <>
-          <div>
-            <strong>
-              Unable to proceed. Form data is not valid. Maybe empty?
-            </strong>
-          </div>
-          <div style={{ paddingBottom: "10px" }}>Check your inputs!</div>
-        </>,
-        {
-          toastId: "formDataError",
-        }
-      );
-      return;
-    }
-    // create description list
-    let footnote = `<div> This template was generated with <span><a title=https://github.com/csihda/adamant href=https://github.com/csihda/adamant>ADAMANT v1.0.0</a></span> </div>`;
-    let descList = createDescriptionListFromJSON(
-      cleaned,
-      convSch,
-      convProp,
-      schema,
-      footnote,
-      true
-    );
-
-    setDescriptionList(descList);
-
-    // validate the data first using ajv
-    //let content = { ...jsonData };
-    let convSchemaData = { ...convertedSchema };
-    let content = convData2FormData(
-      JSON.parse(JSON.stringify(convSchemaData["properties"]))
-    );
-    // get rid of empty values in content
-    content = removeEmpty(content);
-    if (content === undefined) {
-      content = {};
-    }
-    //console.log("content", content);
-    let contentSchema = { ...schema };
-
-    //console.log("content", content);
-
-    //
-    // validate jsonData against its schema before submission
-    //
-    const [valid, messages] = validateAgainstSchema(content, contentSchema);
-    setErrorStuffUponValidation(messages);
-    //console.log(content);
-    if (!valid | (Object.keys(content).length === 0)) {
-      toast.error(
-        <>
-          <div>
-            <strong>Form data is not valid.</strong>
-          </div>
-          <div style={{ paddingBottom: "10px" }}>Check your inputs!</div>
-          {messages.map((item, index) => {
-            return <div key={index}>{index + 1 + ". " + item.message}</div>;
-          })}
-        </>,
-        {
-          autoClose: 10000,
-          toastId: "formDataError",
-        }
-      );
-      // clear states
-      setToken("");
-      setExperimentTitle("");
-      setTags([]);
-      return;
-    } else {
-      //setOpenSubmitDialog(true);
-      setOpenFormReviewDialog(true);
-    }
-  };
-
   // gather all loaded files in one object
   const handleLoadedFiles = (file) => {
     let files = loadedFiles;
@@ -1477,51 +1061,37 @@ const AdamantMain = ({ onLogout }) => {
                 padding: "10px 10px 0px 10px",
               }}
             >
-              <Autocomplete
-                disablePortal
-                value={selectedSchemaName}
-                onChange={(event, newValue) =>
-                  handleSelectSchemaOnChange(newValue)
-                }
-                id="select-available-schema"
-                options={schemaNameList.slice().sort((a, b) => a.localeCompare(b))}
-                style={{ width: "2600px" }}
-                renderInput={(params) => (
-                  <TextField
-                    variant="outlined"
-                    {...params}
-                    label="Select existing schema"
+              {!browseExpirementsMode && (
+                <>
+                  <Autocomplete
+                    disablePortal
+                    value={selectedSchemaName}
+                    onChange={(event, newValue) =>
+                      handleSelectSchemaOnChange(newValue)
+                    }
+                    id="select-available-schema"
+                    options={schemaNameList.slice().sort((a, b) => a.localeCompare(b))}
+                    style={{ width: "2600px" }}
+                    renderInput={(params) => (
+                      <TextField
+                        variant="outlined"
+                        {...params}
+                        label="Select existing schema"
+                      />
+                    )}
                   />
-                )}
-              />
-              {/* <TextField
-                onChange={(event) => handleSelectSchemaOnChange(event)}
-                style={{ width: "100%" }}
-                fullWidth={false}
-                value={selectedSchemaName}
-                select
-                id={"select-schema"}
-                label={"Select existing schema"}
-                variant="outlined"
-                SelectProps={{ native: true }}
-              >
-                {schemaNameList.map((content, index) => (
-                  <option key={index} value={content}>
-                    {content}
-                  </option>
-                ))}
-              </TextField>
-              */}
-              <div
-                style={{
-                  paddingLeft: "10px",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                OR
-              </div>
+                  <div
+                    style={{
+                      paddingLeft: "10px",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    OR
+                  </div>
+                </>
+              )}
               <Button
                 style={{ width: "100%", marginLeft: "10px" }}
                 variant="contained"
@@ -1556,31 +1126,35 @@ const AdamantMain = ({ onLogout }) => {
               <div
                 style={{
                   paddingLeft: "10px",
-                  width: "100%",
                   display: "flex",
-                  justifyContent: "right",
+                  justifyContent: "center",
                   alignItems: "center",
                 }}
               >
-                {/* <Tooltip
-                  placement="top"
-                  title="Wondering how to use this tool?"
-                >
-                  <Button
-                    onClick={() => {
-                      window.open(
-                        "https://github.com/csihda/adamant",
-                        "_blank" // <- This is what makes it open in a new window.
-                      );
-                    }}
-                  >
-                    <HelpIcon />
-                  </Button>
-                  </Tooltip>*/}
+                OR
               </div>
+              <Button
+                onClick={() => handleBrowseExpirementsResults()}
+                style={{
+                  width: "100%",
+                  marginLeft: "10px",
+                  marginRight: "10px",
+                }}
+                variant="contained"
+                color="primary"
+              >
+                BROWSE EXPIREMENTS RESULTS
+              </Button>
             </div>
           ) : null}
         </div>
+        {browseExpirementsMode && (
+        <iframe
+          src="/react-mui-demo/index.html"
+          style={{ width: "100%", height: "100vh", border: "none" }}
+          title="React MUI Demo"
+        ></iframe>
+        )}
         {!inputMode ? (
           <div
             style={{
@@ -1720,51 +1294,18 @@ const AdamantMain = ({ onLogout }) => {
                   </Button>
                 </>
               ) : null} 
-             {/* <Button
-                style={{ float: "right", marginRight: "5px" }}
-                id="demo-positioned-button"
-                aria-controls={open ? "demo-positioned-menu" : undefined}
-                aria-haspopup="true"
-                aria-expanded={open ? "true" : undefined}
-                onClick={handleClick}
-              >
-                <DownloadIcon /> Save Dataset
-              </Button>
-              <Menu
-                id="demo-positioned-menu"
-                aria-labelledby="demo-positioned-button"
-                anchorEl={anchorEl}
-                open={open}
-                onClose={handleClose}
-                anchorOrigin={{
-                  vertical: "top",
-                  horizontal: "left",
-                }}
-                transformOrigin={{
-                  vertical: "top",
-                  horizontal: "left",
-                }}
-              >
-                <MenuItem onClick={handleDownloadJsonSchema}>
-                  Download JSON Schema
-                </MenuItem>
-                <MenuItem onClick={handleDownloadFormData}>
-                  Download JSON Data
-                </MenuItem>
-                <MenuItem onClick={handleDownloadDescriptionList}>
-                  Download Description List
-                </MenuItem>
-              </Menu>*/}
             </div>
           ) : (
-            <Button
-              disabled={disable}
-              onClick={() => compileOnClick()}
-              variant="contained"
-              color="primary"
-            >
-              Compile
-            </Button>
+            !browseExpirementsMode && (
+              <Button
+                disabled={disable}
+                onClick={compileOnClick}
+                variant="contained"
+                color="primary"
+              >
+                Compile
+              </Button>
+            )
           )}
         </div>
         {/* <div style={{ padding: "10px", color: "grey" }}>ADAMANT v1.2.0</div>
@@ -1778,37 +1319,6 @@ const AdamantMain = ({ onLogout }) => {
         </Button>
         </div>
       </FormContext.Provider>
-      <CreateELabFTWExperimentDialog
-        setTags={setTags}
-        tags={tags}
-        setRetrievedTags={setRetrievedTags}
-        retrievedTags={retrievedTags}
-        setExperimentTitle={setExperimentTitle}
-        createExperimentELabFTW={createExperimentELabFTW}
-        setToken={setToken}
-        token={token}
-        setELabURL={setELabURL}
-        eLabURL={eLabURL}
-        setOpenCreateElabFTWExperimentDialog={
-          setOpenCreateElabFTWExperimentDialog
-        }
-        openCreateElabFTWExperimentDialog={openCreateElabFTWExperimentDialog}
-        getTagsELabFTW={getTagsELabFTW}
-      />
-      {openFormReviewDialog ? (
-        <FormReviewBeforeSubmit
-          onlineMode={onlineMode}
-          openFormReviewDialog={openFormReviewDialog}
-          setOpenFormReviewDialog={setOpenFormReviewDialog}
-          descriptionList={descriptionList}
-          setOpenFunctions={{
-            setOpenCreateElabFTWExperimentDialog,
-            setOpenJobRequestDialog,
-          }}
-          submitFunctions={{ submitJobRequest }}
-          submitText={submitText}
-        />
-      ) : null}
     </>
   );
 };

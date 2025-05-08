@@ -4,16 +4,16 @@
 }
 
 .the_app {
-  max-width: 1000px;
+  max-width: 100%;
   margin: 0 auto;
   background-color: #ffff;
   /*min-height: 500px;*/
-  border: 1px solid #251d92;
-  border-radius: 8px;
+  /* border: 1px solid #251d92;
+  border-radius: 8px; */
 }
 
 .form_container {
-  max-width: 970px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0.75rem;
   /*border-top: 1px solid #251d92;
@@ -21,7 +21,7 @@
 }
 
 .header {
-  max-width: 970px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0.75rem;
   border-top: 2px solid #251d92;

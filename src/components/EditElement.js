@@ -23,7 +23,6 @@ import AddIcon from "@material-ui/icons/AddBox";
 import getValue from './utils/getValue';
 import { useDropzone } from "react-dropzone";
 import object2array from './utils/object2array';
-import convertedSchemaPropertiesSort from './utils/convertedSchemaPropertiesSort';
 import getFileIndex from './utils/getFileIndex';
 import getValueInSchemaFullPath from './utils/getValueInSchemaFullPath';
 
@@ -71,7 +70,7 @@ const EditElement = ({ editOrAdd, field_uri, enumerated, field_enumerate, field_
     const [fieldUri, setFieldUri] = useState(UISchema !== undefined ? UISchema["$id"] : "")
     const [description, setDescription] = useState(UISchema !== undefined ? UISchema["description"] : "")
     const [defValue, setDefValue] = useState(defaultValue !== undefined ? defaultValue : "")
-    const { loadedFiles, handleRemoveFile, updateParent, convertedSchema, updateFormDataId, schemaSpecification, handleDataDelete, handleCheckIDexistence } = useContext(FormContext);
+    const { loadedFiles, handleRemoveFile, updateParent, convertedSchema, updateFormDataId, schemaSpecification, handleCheckIDexistence } = useContext(FormContext);
     const [requiredChecked, setRequiredChecked] = useState(field_required === undefined ? false : field_required)
     const [enumChecked, setEnumChecked] = useState(enumerated === undefined ? false : enumerated)
     const [enumList, setEnumList] = useState(field_enumerate === undefined ? [] : field_enumerate);
@@ -171,7 +170,21 @@ const EditElement = ({ editOrAdd, field_uri, enumerated, field_enumerate, field_
                 setCharMinMaxLengthValue(value)
             }
         }
-    }, [])
+    }, [    
+        UISchema,
+        arrayMinMaxItem,
+        arrayUniqueItems,
+        charMinMaxLengthValue,
+        field_uri,
+        numberMinMaxValue,
+        setFieldUri,
+        setArrayItemDataType,
+        setArrayItemType,
+        setItemSchemaData,
+        setArrayMinMaxItem,
+        setNumberMinMaxValue,
+        setCharMinMaxLengthValue,
+    ])
 
 
     let tempUISchema
@@ -1256,7 +1269,7 @@ const EditElement = ({ editOrAdd, field_uri, enumerated, field_enumerate, field_
                 }
 
                 //alert(ID + " | " + UISchema["items"]["$id"] + " | " + ID + " | " + UISchema["items"]["id"])
-                if (ID == undefined) {
+                if (ID === undefined) {
                     setItemSchemaEdit(false)
                 } else if (ID === UISchema["items"]["$id"] || ID === UISchema["items"]["id"]) {
                     //alert(ID + " | " + UISchema["items"]["$id"] + " | " + ID + " | " + UISchema["items"]["id"])
@@ -1483,7 +1496,7 @@ const EditElement = ({ editOrAdd, field_uri, enumerated, field_enumerate, field_
             // setJsonData({});
             // setSelectedSchemaName("");
         },
-        [activeSubSchemaButton, selectedType]
+        [selectedType, checkSubSchemaValidity], 
     );
     // for upload subschema
     const { getRootProps, getInputProps } = useDropzone({

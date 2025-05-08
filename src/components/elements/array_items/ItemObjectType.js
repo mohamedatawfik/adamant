@@ -6,9 +6,7 @@ import { AccordionDetails, AccordionSummary } from '@material-ui/core';
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import { Button } from '@material-ui/core';
 import DeleteIcon from "@material-ui/icons/Delete";
-import FileIconx from "../../../assets/file-icon.svg"
 import { FileIcon, defaultStyles } from 'react-file-icon'
-import FileExtensionList from "../../../assets/mime-types-extensions-swapped.json"
 
 const ItemObjectType = ({ path, dataInputItems, setDataInputItems, field_label, pathFormData, field_required, field_items, field_type, edit, index, field_key, handleDeleteArrayItem }) => {
     const [expand, setExpand] = useState(dataInputItems[index]["adamant-ui-specific-expand"] === undefined ? true : dataInputItems[index]["adamant-ui-specific-expand"]); // set to "true" for normally open accordion

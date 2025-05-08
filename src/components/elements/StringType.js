@@ -75,28 +75,6 @@ const StringType = ({ adamant_field_error, adamant_error_description, minLength,
         }
     }
 
-    // for SEM only - currently hardcoded
-    useEffect(() => {
-        if (field_key === "semOperator") {
-            if (SEMSelectedDevice === "") {
-                setFieldEnumerate(field_enumerate)
-                setFieldValue("")
-            } else {
-                try {
-                    let semOperatorDeviceList = require("../../assets/sem-operator-device-list.json")
-                    setFieldValue("")
-                    setFieldEnumerate(semOperatorDeviceList[SEMSelectedDevice])
-                }
-                catch (error) {
-                    console.log(error)
-                    setFieldValue("")
-                    setFieldEnumerate(field_enumerate)
-                }
-            }
-        }
-
-    }, [SEMSelectedDevice, field_enumerate, field_key])
-
     // clean up empty strings in the paths
     path = path.split(".")
     path = path.filter(e => e)
