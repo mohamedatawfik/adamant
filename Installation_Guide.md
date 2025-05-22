@@ -103,15 +103,15 @@ curl http://<machine-1-ip>:5000
 cd adamant
 npm install
 npm run build
-cd react-mui-demo
+cd db-ui
 npm install
 npm run build
 ```
 
 Move the nested build directory into the main build directory:
 ```bash
-mkdir -p ../build/react-mui-demo
-mv build/* ../build/react-mui-demo/
+mkdir -p ../build/db-ui
+mv build/* ../build/db-ui/
 ```
 
 Place the compiled frontend into the Nginx web root:
@@ -216,6 +216,21 @@ These privileges allow the Flask backend to fully access the `experiment_data` d
 
 ### **Machine 1 (Adamant Web Server)**
 
+#### Configure SSH Connection To Machine 2
+```bash
+ssh machine1
+vim ~/.ssh/nextcloud
+    Host nextcloud
+        Hostname 1.1.1.1(replace with nextcloud ip address)
+        User root
+        Ciphers aes128-ctr,aes128-cbc
+cat ~/.ssh/id_rsa.pub
+ssh machine2
+vim ~/.ssh/authorized_keys
+    Paste the id_rsa.pub content of machine1
+```
+
+
 #### Script: insert_data2db.sh
 
 - **Purpose:**  
@@ -251,6 +266,20 @@ crontab -e
 ```
 
 ### **Machine 2 (Nextcloud Server)**
+
+#### Configure SSH Connection To Machine 1
+```bash
+ssh machine2
+vim ~/.ssh/adamant
+    Host adamant
+        Hostname 1.1.1.1(replace with adamant web server ip address)
+        User root
+        Ciphers aes128-ctr,aes128-cbc
+cat ~/.ssh/id_rsa.pub
+ssh machine1
+vim ~/.ssh/authorized_keys
+    Paste the id_rsa.pub content of machine1
+```
 
 #### Script: data_preprocessing.sh
 
