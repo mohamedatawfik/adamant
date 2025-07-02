@@ -13,5 +13,7 @@ echo "Copying Bash scripts to /home/scripts..."
 mkdir -p /home/user/scripts
 cp bin/data_preprocessing.sh /home/user/scripts/
 chmod +x /home/user/scripts/data_preprocessing.sh
+cp ../bin/syncscript.sh /home/user/scripts/
+chmod +x /home/user/scripts/syncscript.sh
 
 echo "Nextcloud Machine setup complete."

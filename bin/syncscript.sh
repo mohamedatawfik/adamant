@@ -2,7 +2,7 @@
 
 # Function to sync directories
 sync_dirs() {
-	rsync -avz --delete nextcloud:~/data_sorted/ data_sorted
+	rsync -avz --delete adamant:~/data_sorted/ data_sorted
 }
 
 # Initial sync

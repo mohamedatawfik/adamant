@@ -56,8 +56,6 @@ sudo certbot --nginx -d metadata.empi-rf.de
 echo "Copying Bash scripts to /home/user/scripts..."
 mkdir -p /home/user/scripts
 cp ../bin/insert_data2db.sh /home/user/scripts/
-cp ../bin/syncscript.sh /home/user/scripts/
 chmod +x /home/user/scripts/insert_data2db.sh
-chmod +x /home/user/scripts/syncscript.sh
 
 echo "Adamant Web Server Machine setup complete."
