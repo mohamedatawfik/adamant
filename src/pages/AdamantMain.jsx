@@ -652,6 +652,15 @@ const AdamantMain = ({ onLogout }) => {
     setCreateScratchMode(false);
   };
 
+  const handleReturnHome = () => {
+    setBrowseExpirementsMode(false);
+    setRenderReady(false);
+    setEditMode(false);
+    setCreateScratchMode(false);
+
+    // window.location.reload();
+  };
+
   // compile on-click handle
   const compileOnClick = () => {
     let value = schema;
@@ -1152,7 +1161,7 @@ const AdamantMain = ({ onLogout }) => {
         <iframe
           src="/db-ui/index.html"
           style={{ width: "100%", height: "100vh", border: "none" }}
-          title="React MUI Demo"
+          title="Expirements DB User Interface"
         ></iframe>
         )}
         {!inputMode ? (
@@ -1317,6 +1326,16 @@ const AdamantMain = ({ onLogout }) => {
         <Button variant="contained" color="primary" onClick={handleLogout}>
           Logout
         </Button>
+        {browseExpirementsMode && (
+          <Button
+            variant="contained"
+            color="primary"
+            style={{ float: "right", marginLeft: "10px" }}
+            onClick={handleReturnHome}
+          >
+            Return Home
+          </Button>
+        )}
         </div>
       </FormContext.Provider>
     </>
