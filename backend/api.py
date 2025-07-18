@@ -13,6 +13,8 @@ import io
 import base64
 from datetime import date
 import pymysql
+import logging
+import json as _json
 # from watchdog.observers import Observer
 # from watchdog.events import FileSystemEventHandler
 
@@ -26,11 +28,17 @@ app.config['EMPIRF_SECRET_KEY'] = 'EPMIRF_SECURITY'
 # jwt = JWTManager(app)
 
 # Database configuration
-DB_HOST = '127.0.0.1'
-DB_PORT = 3306
-DB_USER = 'new_user'
-DB_PASSWORD = 'new_password'
-DB_NAME = 'experiment_data'
+with open(os.path.join(os.path.dirname(__file__), 'conf', 'db_config.json'), 'r') as f:
+    db_config = _json.load(f)
+DB_HOST = db_config['DB_HOST']
+DB_PORT = db_config['DB_PORT']
+DB_USER = db_config['DB_USER']
+DB_PASSWORD = db_config['DB_PASSWORD']
+DB_NAME = db_config['DB_NAME']
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
 
 # class DataHandler(FileSystemEventHandler):
 #     def __init__(self):
@@ -123,7 +131,7 @@ def findBase64(data, prevKey, emptyArray):
         else:
             if isinstance(data[key], str):
                 if data[key].startswith("data:") and ("base64" in data[key]):
-                    print("found data")
+                    logger.info("found data")
                     emptyArray.append({"key": key, "data": data[key]})
 
     return emptyArray
@@ -205,9 +213,9 @@ def create_table_from_schema(schema_name, schema_content):
 
     columns_str = ", ".join(columns)
     drop_table_query = f"DROP TABLE IF EXISTS `{schema_name}`;"
-    print('@@@@@@@@@@@@@@@ DB QUERY @@@@@@@@@@@@@@@@@', drop_table_query)
+    logger.debug(f'DB QUERY: {drop_table_query}')
     create_table_query = f"CREATE TABLE IF NOT EXISTS `{schema_name}` ({columns_str});"
-    print('@@@@@@@@@@@@@@@ DB QUERY @@@@@@@@@@@@@@@@@',create_table_query)
+    logger.debug(f'DB QUERY: {create_table_query}')
     
 
     # Connect to the database and execute the query
@@ -219,19 +227,19 @@ def create_table_from_schema(schema_name, schema_content):
             password=DB_PASSWORD,
             database=DB_NAME
         )
-        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+        logger.info('CONNECTION TO DB IS SUCCESSFUL')
     except pymysql.Error as e:
-        print(f'Error connecting to MariaDB: {e}')
+        logger.error(f'Error connecting to MariaDB: {e}')
     try:
         with connection.cursor() as cursor:
             cursor.execute(drop_table_query)
-            print('@@@@@@@@@@@@@@@ DROP TABLE EXECUTED @@@@@@@@@@@@@@@@@')
+            logger.info('DROP TABLE EXECUTED')
             cursor.execute(create_table_query)
         connection.commit()
-        print('@@@@@@@@@@@@@@@ COMMIT SUCCESFULL @@@@@@@@@@@@@@@@@')
+        logger.info('COMMIT SUCCESSFUL')
     finally:
         connection.close()
-        print('@@@@@@@@@@@@@@@ CONNECTION IS CLOSED @@@@@@@@@@@@@@@@@')
+        logger.info('CONNECTION IS CLOSED')
 
 
 # @app.route('/')
@@ -276,7 +284,7 @@ def get_schemas():
 @app.route('/api/save_schema', methods=["POST"])
 def save_schema():
     data = request.json
-    print(f"Received data: {data}")
+    logger.info(f"Received data: {data}")
     schema_name = data.get("schemaName")
     schema_content = data.get("schema")
 
@@ -299,7 +307,7 @@ def save_schema():
             with open(f"./schemas/{schema_name}.json", "w", encoding="utf-8") as file:
                 file.write(updated_schema_content)
                 # Create the corresponding table in the database
-                print('@@@@@@@@@@@@@@@ CREATE IS CALLED @@@@@@@@@@@@@@@@@')
+                logger.info('CREATE IS CALLED')
                 create_table_from_schema(schema_name, updated_schema_content)
             return {"message": f"Schema '{schema_name}' saved successfully"}, 200
         except Exception as e:
@@ -310,6 +318,7 @@ def save_schema():
 # API Endpoint: Get list of tables
 @app.route("/api/tables", methods=["GET"])
 def get_tables():
+    connection = None
     try:
         connection = pymysql.connect(
             host=DB_HOST,
@@ -318,9 +327,9 @@ def get_tables():
             password=DB_PASSWORD,
             database=DB_NAME
         )
-        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+        logger.info('CONNECTION TO DB IS SUCCESSFUL')
     except pymysql.Error as e:
-        print(f'Error connecting to MariaDB: {e}')
+        logger.error(f'Error connecting to MariaDB: {e}')
     try:
         with connection.cursor() as cursor:
             cursor.execute("SHOW TABLES")
@@ -340,9 +349,9 @@ def get_table_data(table):
             password=DB_PASSWORD,
             database=DB_NAME
         )
-        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+        logger.info('CONNECTION TO DB IS SUCCESSFUL')
     except pymysql.Error as e:
-        print(f'Error connecting to MariaDB: {e}')
+        logger.error(f'Error connecting to MariaDB: {e}')
     try:
         with connection.cursor() as cursor:
             query = f"SELECT * FROM `{table}`"
@@ -365,9 +374,9 @@ def get_columns(table):
             password=DB_PASSWORD,
             database=DB_NAME
         )
-        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+        logger.info('CONNECTION TO DB IS SUCCESSFUL')
     except pymysql.Error as e:
-        print(f'Error connecting to MariaDB: {e}')
+        logger.error(f'Error connecting to MariaDB: {e}')
     try:
         with connection.cursor() as cursor:
             query = f"DESCRIBE `{table}`"
@@ -393,9 +402,9 @@ def search_tables(search_string):
             password=DB_PASSWORD,
             database=DB_NAME
         )
-        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+        logger.info('CONNECTION TO DB IS SUCCESSFUL')
     except pymysql.Error as e:
-        print(f'Error connecting to MariaDB: {e}')
+        logger.error(f'Error connecting to MariaDB: {e}')
     try:
         with connection.cursor() as cursor:
             cursor.execute("SHOW TABLES")
@@ -432,9 +441,9 @@ def left_join():
             database=DB_NAME,
             cursorclass=pymysql.cursors.DictCursor
         )
-        print('@@@@@@@@@@@@@@@ CONNECTION TO DB IS SUCCESFULL @@@@@@@@@@@@@@@@@')
+        logger.info('CONNECTION TO DB IS SUCCESSFUL')
     except pymysql.Error as e:
-        print(f'Error connecting to MariaDB: {e}')
+        logger.error(f'Error connecting to MariaDB: {e}')
     table1 = request.args.get("table1")
     table2 = request.args.get("table2")
     column1 = request.args.get("column1")
@@ -543,7 +552,7 @@ def create_experiment():
         endpoint=elabURL, token=token)
     response = manager.create_experiment()
 
-    print("response:",response)
+    logger.info(f"response: {response}")
 
     # create the experiment body which is the description list attained by converting the jsdata
 
@@ -596,7 +605,7 @@ def create_experiment():
         with open("temp-files//"+item["key"]+extension, "r+b") as fh:
             file_param = {'file': fh}
             manager.upload_to_experiment(response['id'], file_param)
-    print(fileNames)
+    logger.info(f"fileNames: {fileNames}")
 
     # now delete everything in temp-files directory
     dir = './temp-files'
@@ -635,10 +644,10 @@ def create_experiment():
             msg.set_content(html, subtype="html")
 
             s.send_message(msg)
-            print("applicant email is valid")
+            logger.info("applicant email is valid")
             del msg
     except Exception as e:
-        print("No job request configuration was found. Skipping.")
+        logger.warning("No job request configuration was found. Skipping.")
 
     return {"responseText": f"Created experiment with id {response['id']}.", "message": "success", "experimentId": response['id']}
 
@@ -736,18 +745,18 @@ def submit_job_request():
             try:
                 s.send_message(msg1)
                 s.send_message(msg2)
-                print("applicant email is valid")
+                logger.info("applicant email is valid")
                 del msg1
                 del msg2
                 return {"response": 200, "responseText": "Your request has been submitted."}
             except Exception as e:
                 del msg1
                 del msg2
-                print(e)
+                logger.error(e)
                 return {"response": 500, "responseText": "Something went wrong"}
 
     except Exception as e:
-        print(e)
+        logger.error(e)
         return {"response": 500, "responseText": "List of operators are not available in the server."}
 
 # if __name__ == "__main__":
