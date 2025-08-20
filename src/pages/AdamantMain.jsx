@@ -1154,6 +1154,32 @@ const AdamantMain = ({ onLogout }) => {
               >
                 BROWSE EXPIREMENTS RESULTS
               </Button>
+              {browseExpirementsMode && (
+              <>
+                <div
+                  style={{
+                    paddingLeft: "10px",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  OR
+                </div>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  style={{
+                    width: "100%",
+                    marginLeft: "5px",
+                    marginRight: "5px",
+                  }}
+                  onClick={handleReturnHome}
+                >
+                  RETURN HOME
+                </Button>
+              </>
+              )}
             </div>
           ) : null}
         </div>
@@ -1326,16 +1352,6 @@ const AdamantMain = ({ onLogout }) => {
         <Button variant="contained" color="primary" onClick={handleLogout}>
           Logout
         </Button>
-        {browseExpirementsMode && (
-          <Button
-            variant="contained"
-            color="primary"
-            style={{ float: "right", marginLeft: "10px" }}
-            onClick={handleReturnHome}
-          >
-            Return Home
-          </Button>
-        )}
         </div>
       </FormContext.Provider>
     </>
