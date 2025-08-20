@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { DataGridPremium } from "@mui/x-data-grid-premium";
 import { TextField, MenuItem, Button, FormControl } from "@mui/material";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function DataGridPage() {
   const [tables, setTables] = useState([]);
@@ -14,15 +16,30 @@ function DataGridPage() {
     fetch("/api/tables")
       .then((response) => response.json())
       .then((data) => {
-        setTables(data);
-        if (data.length > 0) setSelectedTable(data[0]);
+        if (data.length > 0) {
+          setTables(data);
+          setSelectedTable(data[0]);
+        } else {
+          setTables([]);
+          setSelectedTable("");
+          toast.warning("Database is offline. No tables available.");
+        }
       })
-      .catch((err) => console.error("Error fetching table list:", err));
+      .catch((err) => {
+        console.error("Error fetching table list:", err);
+        setTables([]);
+        setSelectedTable("");
+        toast.error("Unable to connect to the database. Please try again later.");
+      });
   }, []);
 
   // Fetch data and column information of the selected table
   useEffect(() => {
-    if (!selectedTable) return;
+    if (!selectedTable) {
+      setRows([]);
+      setColumns([]);
+      return;
+    }
 
     fetch(`/api/data/${selectedTable}`)
       .then((response) => response.json())
@@ -33,23 +50,28 @@ function DataGridPage() {
         }));
         setRows(rowsWithId);
       })
-      .catch((err) => console.error("Error fetching table data:", err));
+      .catch((err) => {
+        console.error("Error fetching table data:", err);
+        setRows([]);
+        toast.error("Failed to fetch data for the selected table.");
+      });
 
     fetch(`/api/columns/${selectedTable}`)
       .then((response) => response.json())
       .then((columnData) => {
-        const formattedColumns = [
-
-          ...columnData.map((column) => ({
-            field: column.name,
-            headerName: column.name.charAt(0).toUpperCase() + column.name.slice(1),
-            editable: true,
-            type: /int|decimal|float|double/.test(column.type) ? "number" : "text",
-          })),
-        ];
+        const formattedColumns = columnData.map((column) => ({
+          field: column.name,
+          headerName: column.name.charAt(0).toUpperCase() + column.name.slice(1),
+          editable: true,
+          type: /int|decimal|float|double/.test(column.type) ? "number" : "text",
+        }));
         setColumns(formattedColumns);
       })
-      .catch((err) => console.error("Error fetching column information:", err));
+      .catch((err) => {
+        console.error("Error fetching column information:", err);
+        setColumns([]);
+        toast.error("Failed to fetch column information for the selected table.");
+      });
   }, [selectedTable]);
 
   const gridApiRef = React.useRef(null);
@@ -64,6 +86,7 @@ function DataGridPage() {
         overflowX: "auto",
       }}
     >
+      <ToastContainer />
       <div style={{ display: "flex", gap: "10px", marginBottom: "30px", padding: "5px" }}>
         {/* Table selection with TextField */}
         <FormControl style={{ minWidth: 500 }}>
@@ -72,6 +95,7 @@ function DataGridPage() {
             label="Select Table"
             value={selectedTable}
             onChange={(e) => setSelectedTable(e.target.value)}
+            disabled={tables.length === 0}
           >
             {tables.map((table) => (
               <MenuItem key={table} value={table}>
