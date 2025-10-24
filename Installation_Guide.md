@@ -178,6 +178,11 @@ Expected output:
 ```
 
 ### **Database Users**
+
+Create a new User:
+```sql
+CREATE USER 'new_user'@'localhost' IDENTIFIED BY 'new_password';
+```
 To view current users:
 ```sql
 SELECT User, Host FROM mysql.user;
