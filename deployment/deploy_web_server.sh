@@ -42,8 +42,14 @@ echo "Setting up Node frontend..."
 cd ../frontend
 npm install && npm run build
 
-echo "Copying build to Nginx root..."
-sudo cp -r build /var/www/html/adamant
+echo "Copying adamant build to Nginx root..."
+sudo cp -r build /var/www/html/build
+
+cd ../db-ui
+npm install && npm run build
+
+echo "Copying db-ui build to Nginx root..."
+sudo cp -r build /var/www/html/build/db-ui
 
 echo "Setting up Nginx..."
 sudo cp ../nginx.default.prod.conf /etc/nginx/conf.d/adamant.conf
