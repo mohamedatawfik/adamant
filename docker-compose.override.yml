@@ -1,0 +1,30 @@
+# Development overrides
+version: '3.8'
+
+services:
+  backend:
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+    volumes:
+      - ./backend:/app
+    command: ["python", "api.py"]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    command: ["npm", "start"]
+
+  db-ui:
+    build:
+      context: ./db-ui
+    volumes:
+      - ./db-ui/src:/app/src
+      - ./db-ui/public:/app/public
+    command: ["npm", "start"]
+
+
