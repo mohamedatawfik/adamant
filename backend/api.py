@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-from flask_jwt_extended import create_access_token
 from flask_restful import Api
 import elabapy
 import json
