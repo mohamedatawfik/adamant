@@ -66,12 +66,12 @@ cd ..  # Go back to adamant root directory
 sudo cp deployment/nginx.default.prod.conf /etc/nginx/conf.d/adamant.conf
 sudo systemctl restart nginx
 
-echo "Obtaining SSL with Certbot..."
-sudo certbot --nginx -d metadata.empi-rf.de
-
 echo "Copying Bash scripts to /home/user/scripts..."
 mkdir -p /home/user/scripts
 cp bin/insert_data2db.sh /home/user/scripts/
 chmod +x /home/user/scripts/insert_data2db.sh
+
+echo "Obtaining SSL with Certbot..."
+sudo certbot --nginx -d metadata.empi-rf.de
 
 echo "Adamant Web Server Machine setup complete."
