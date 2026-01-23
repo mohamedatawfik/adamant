@@ -1,7 +1,21 @@
 #!/bin/bash
 
+# Load environment variables from .env file if it exists
+# Try to find .env file in the script's directory or parent directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/../.env" ]; then
+    set -a
+    source "$SCRIPT_DIR/../.env"
+    set +a
+elif [ -f "$SCRIPT_DIR/.env" ]; then
+    set -a
+    source "$SCRIPT_DIR/.env"
+    set +a
+fi
+
 # Define the source and target directories
-source_dir="./nextcloud_dir/rawData"
+# Use NEXTCLOUD_DATA_DIR from .env file, default to ./nextcloud_dir/rawData if not set
+source_dir="${NEXTCLOUD_DATA_DIR:-./nextcloud_dir}/rawData"
 target_dir="./data_sorted"
 echo $source_dir
 
