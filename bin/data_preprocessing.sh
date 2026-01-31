@@ -16,7 +16,7 @@ fi
 # Define the source and target directories
 # Use NEXTCLOUD_DATA_DIR from .env file, default to ./nextcloud_dir/rawData if not set
 source_dir="${NEXTCLOUD_DATA_DIR:-./nextcloud_dir}/rawData"
-target_dir="./data_sorted"
+target_dir="${DATA_SORTED_DIR:-./data_sorted}"
 echo $source_dir
 
 # Create the target directory if it does not exist

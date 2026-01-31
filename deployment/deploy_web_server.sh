@@ -6,11 +6,16 @@ echo "Cloning the Adamant repository..."
 git clone https://github.com/mohamedatawfik/adamant.git
 cd adamant
 
-echo "Installing dependencies for Machine 1..."
-sudo apt update && sudo apt install -y python3-venv mariadb-server mariadb-client nginx certbot python3-certbot-nginx git curl jq inotify-tools rsync libjpeg-dev zlib1g-dev npm build-essential python3-dev nodejs
+echo "Installing dependencies for Machine 1 (Ubuntu 24.04)..."
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg git jq inotify-tools rsync \
+  python3-venv python3-dev build-essential libjpeg-dev zlib1g-dev \
+  mariadb-server mariadb-client nginx certbot python3-certbot-nginx
 
-echo "Installing npm version 7.20.0 (required for project compatibility)..."
-sudo npm install -g npm@7.20.0
+echo "Installing Node.js LTS (includes current npm)..."
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+echo "node version: $(node -v)"
 echo "npm version: $(npm -v)"
 
 echo "Setting up MariaDB..."
@@ -26,6 +31,17 @@ else
     DB_USER=${DB_USER:-adamant_user}
     DB_PASSWORD=${DB_PASSWORD:-adamant_password}
 fi
+
+# Write DB config for backend
+cat > backend/conf/db_config.json <<EOF
+{
+  "DB_HOST": "127.0.0.1",
+  "DB_PORT": 3306,
+  "DB_USER": "${DB_USER}",
+  "DB_PASSWORD": "${DB_PASSWORD}",
+  "DB_NAME": "${DB_NAME}"
+}
+EOF
 
 # Start and enable MariaDB service
 sudo systemctl start mariadb
@@ -98,16 +114,12 @@ sudo systemctl start adamant-backend
 echo "Setting up Node frontend..."
 cd ..  # Go back to adamant root directory
 
-# Set NODE_OPTIONS for compatibility with older webpack/react-scripts and Node.js 18+
-export NODE_OPTIONS=--openssl-legacy-provider
 npm install && npm run build
 
 echo "Copying adamant build to Nginx root..."
 sudo cp -r build /var/www/html/
 
 cd db-ui
-# Set NODE_OPTIONS for compatibility with older webpack/react-scripts and Node.js 18+
-export NODE_OPTIONS=--openssl-legacy-provider
 npm install && npm run build
 
 echo "Copying db-ui build to Nginx root..."
@@ -121,8 +133,16 @@ sudo systemctl restart nginx
 
 echo "Copying Bash scripts to /home/user/scripts..."
 mkdir -p /home/user/scripts
-cp ../bin/insert_data2db.sh /home/user/scripts/
+cp bin/insert_data2db.sh /home/user/scripts/
 chmod +x /home/user/scripts/insert_data2db.sh
+
+echo "Copying .env file to /home/user/scripts/..."
+if [ -f .env ]; then
+    cp .env /home/user/scripts/.env
+    echo ".env file copied successfully."
+else
+    echo "Warning: .env file not found. Please create and configure it manually in /home/user/scripts/.env"
+fi
 
 echo "Obtaining SSL with Certbot..."
 # Use SSL configuration from .env file

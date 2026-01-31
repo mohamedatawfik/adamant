@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/csihda/adamant/6b2a50dff162b0fc7af0dc6873d7e9d34cfa93aa/src/assets/adamant-header-5.svg" alt="Adamant Logo" style="width:45%;"/> <img src="frontend/assets/EMPI_Logo_reactive-fluids_Color_Black.png" alt="EMPI-RF Logo" style="width:45%;"/>
+# <img src="https://raw.githubusercontent.com/csihda/adamant/6b2a50dff162b0fc7af0dc6873d7e9d34cfa93aa/src/assets/adamant-header-5.svg" alt="Adamant Logo" style="width:45%;"/> <img src="src/assets/EMPI_Logo_reactive-fluids_Color_Black.png" alt="EMPI-RF Logo" style="width:45%;"/>
 
 Adamant 2.0 is a JSON schema-based metadata creation tool presented in a user-friendly interface. It is designed to streamline research expirements data management (RDM) workflows, particularly for small independent laboratories, enabling the generation of research data that adheres to the FAIR (Findable, Accessible, Interoperable, Reusable) principles.
 
@@ -27,7 +27,6 @@ Adamant 2.0 introduces significant improvements, including enhanced deployment o
 - Multi-machine deployment support
 - Automation scripts for deployment and cron job setup
 - Integration with Nextcloud for data preprocessing
-- Dockerized setup for both frontend and backend
 - Enhanced database and API configuration options
 
 #### Changed
@@ -83,13 +82,9 @@ Adamant 2.0 supports JSON schemas with specification versions draft 4 and 7. Bel
 
 By default, Frontend is accessible at http://localhost:3000.
 
+## Deployment (Ubuntu 24.04)
 
-## Multi-Machine Deployment
+Use the deployment scripts in `deployment/`:
 
-### Adamant 2.0 supports deployment across two machines:
-
-* Machine 1: Hosts the Adamant web application (React frontend, Flask backend, MariaDB database).
-
-* Machine 2: Hosts a Nextcloud instance and handles data preprocessing.
-
-Refer to the Installation Guide for detailed instructions.
+* `deployment/deploy_web_server.sh` — Machine 1 (React frontend, Flask backend, MariaDB, Nginx, cron jobs)
+* `deployment/deploy_nextcloud.sh` — Machine 2 (Nextcloud-side preprocessing + sync scripts, cron jobs)

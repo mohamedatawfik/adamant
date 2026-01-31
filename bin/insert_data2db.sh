@@ -1,13 +1,34 @@
 #!/bin/bash
 
-# Define the source and target directories
-source_dir="./data_sorted"
-echo $source_dir
+set -e
+
+# Load environment variables from .env file if it exists
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/../.env" ]; then
+    set -a
+    source "$SCRIPT_DIR/../.env"
+    set +a
+elif [ -f "$SCRIPT_DIR/.env" ]; then
+    set -a
+    source "$SCRIPT_DIR/.env"
+    set +a
+fi
+
+# Define the source directory
+source_dir="${DATA_SORTED_DIR:-./data_sorted}"
+echo "$source_dir"
 
 # Database configuration
-db_user="root"
-db_password="password"
-db_name="experiment_data"
+db_host="${DB_HOST:-127.0.0.1}"
+db_port="${DB_PORT:-3306}"
+db_user="${DB_USER:-root}"
+db_password="${DB_PASSWORD:-password}"
+db_name="${DB_NAME:-experiment_data}"
+
+mysql_base=(mysql -h "$db_host" -P "$db_port" -u "$db_user")
+if [ -n "$db_password" ]; then
+    mysql_base+=(-p"$db_password")
+fi
 
 # Function to process JSON files and insert into database
 process_file() {
@@ -23,7 +44,7 @@ process_file() {
 
     # Query table schema from the database
     column_query="SHOW COLUMNS FROM \`$subfolder\`"
-    columns=$(mysql -u"$db_user" -p"$db_password" -e "$column_query" $db_name | awk '{print $1}' | grep -v 'Field')
+    columns=$("${mysql_base[@]}" "$db_name" -e "$column_query" | awk '{print $1}' | grep -v 'Field')
     echo "@@@ COLUMNS FIELDS @@@"
     echo $columns
     
@@ -63,7 +84,7 @@ process_file() {
         echo "@@@@@ INSERT QUERY @@@@@"
         echo $insert_query
         # Execute the INSERT statement
-        mysql -u$db_user -p$db_password $db_name -e "$insert_query"
+        "${mysql_base[@]}" "$db_name" -e "$insert_query"
     else
         echo "Warning: No table '$subfolder' found in database '$db_name' or table has no columns."
     fi
@@ -86,11 +107,10 @@ remove_file() {
     echo $file_name
     
     # Remove corresponding entry from MariaDB table that matches the folder name and identifier
-    delete_query="\"DELETE FROM \\\`$subfolder\\\` WHERE \\\`Identifier\\\` = '$file_name';\""
+    delete_query="DELETE FROM \`$subfolder\` WHERE \`Identifier\` = '$file_name';"
     echo "@@@@@ DELETE QUERY "
-    echo $delete_query
-    mysql -u $db_user -p "$db_password" -e \"$delete_query\" $db_name
-    echo mysql -u $db_user -p"\"$db_password\"" -e "$delete_query" $db_name
+    echo "$delete_query"
+    "${mysql_base[@]}" "$db_name" -e "$delete_query"
 }
 
 # Process existing JSON files

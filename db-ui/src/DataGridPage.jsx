@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { DataGridPremium } from "@mui/x-data-grid-premium";
+import React, { useEffect, useMemo, useState } from "react";
+import { MaterialReactTable } from "material-react-table";
 import { TextField, MenuItem, Button, FormControl } from "@mui/material";
+import { mkConfig, generateCsv, download } from "export-to-csv";
+import * as XLSX from "@e965/xlsx";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -44,11 +46,7 @@ function DataGridPage() {
     fetch(`/api/data/${selectedTable}`)
       .then((response) => response.json())
       .then((data) => {
-        const rowsWithId = data.map((row, index) => ({
-          id: index + 1,
-          ...row,
-        }));
-        setRows(rowsWithId);
+        setRows(Array.isArray(data) ? data : []);
       })
       .catch((err) => {
         console.error("Error fetching table data:", err);
@@ -60,10 +58,8 @@ function DataGridPage() {
       .then((response) => response.json())
       .then((columnData) => {
         const formattedColumns = columnData.map((column) => ({
-          field: column.name,
-          headerName: column.name.charAt(0).toUpperCase() + column.name.slice(1),
-          editable: true,
-          type: /int|decimal|float|double/.test(column.type) ? "number" : "text",
+          accessorKey: column.name,
+          header: column.name.charAt(0).toUpperCase() + column.name.slice(1),
         }));
         setColumns(formattedColumns);
       })
@@ -74,7 +70,45 @@ function DataGridPage() {
       });
   }, [selectedTable]);
 
-  const gridApiRef = React.useRef(null);
+  const columnHeaders = useMemo(
+    () =>
+      columns.map((col) => ({
+        key: col.accessorKey,
+        displayLabel: col.header,
+      })),
+    [columns]
+  );
+
+  const csvConfig = useMemo(
+    () =>
+      mkConfig({
+        filename: selectedTable || "table",
+        useKeysAsHeaders: false,
+        columnHeaders,
+      }),
+    [selectedTable, columnHeaders]
+  );
+
+  const handleExportCsv = () => {
+    if (!rows.length) {
+      toast.info("No data to export.");
+      return;
+    }
+    const csv = generateCsv(csvConfig)(rows);
+    download(csvConfig)(csv);
+  };
+
+  const handleExportExcel = () => {
+    if (!rows.length) {
+      toast.info("No data to export.");
+      return;
+    }
+    const headers = columns.map((col) => col.accessorKey);
+    const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, selectedTable || "Data");
+    XLSX.writeFile(workbook, `${selectedTable || "data"}.xlsx`);
+  };
 
   return (
     <div
@@ -88,7 +122,6 @@ function DataGridPage() {
     >
       <ToastContainer />
       <div style={{ display: "flex", gap: "10px", marginBottom: "30px", padding: "5px" }}>
-        {/* Table selection with TextField */}
         <FormControl style={{ minWidth: 500 }}>
           <TextField
             select
@@ -105,15 +138,13 @@ function DataGridPage() {
           </TextField>
         </FormControl>
 
-        {/* Export Buttons */}
-        <Button variant="contained" onClick={() => gridApiRef.current.exportDataAsCsv()}>
+        <Button variant="contained" onClick={handleExportCsv}>
           Export as CSV
         </Button>
-        <Button variant="contained" onClick={() => gridApiRef.current.exportDataAsExcel()}>
+        <Button variant="contained" onClick={handleExportExcel}>
           Export as Excel
         </Button>
 
-        {/* Grid density selection with TextField */}
         <FormControl style={{ minWidth: 150 }}>
           <TextField
             select
@@ -122,23 +153,24 @@ function DataGridPage() {
             onChange={(e) => setDensity(e.target.value)}
           >
             <MenuItem value="compact">Compact</MenuItem>
-            <MenuItem value="standard">Standard</MenuItem>
             <MenuItem value="comfortable">Comfortable</MenuItem>
+            <MenuItem value="spacious">Spacious</MenuItem>
           </TextField>
         </FormControl>
       </div>
 
       <div style={{ height: "700px", overflow: "auto", overflowX: "auto" }}>
-        <DataGridPremium
-          rows={rows}
+        <MaterialReactTable
           columns={columns}
-          pageSize={10}
-          rowsPerPageOptions={[10, 20, 50]}
-          checkboxSelection
-          disableSelectionOnClick
-          experimentalFeatures={{ newEditingApi: true }}
-          density={density}
-          apiRef={gridApiRef}
+          data={rows}
+          enableRowSelection
+          enableDensityToggle={false}
+          enableStickyHeader
+          onDensityChange={setDensity}
+          state={{ density }}
+          getRowId={(_, index) => index.toString()}
+          initialState={{ pagination: { pageSize: 10, pageIndex: 0 } }}
+          muiTableContainerProps={{ sx: { maxHeight: "700px" } }}
         />
       </div>
     </div>

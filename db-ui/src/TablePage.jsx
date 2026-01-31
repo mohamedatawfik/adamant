@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { DataGridPremium, useGridApiRef } from "@mui/x-data-grid-premium";
+import React, { useEffect, useMemo, useState } from "react";
+import { MaterialReactTable } from "material-react-table";
 import { Button, TextField, MenuItem } from "@mui/material";
+import { mkConfig, generateCsv, download } from "export-to-csv";
+import * as XLSX from "@e965/xlsx";
 
 function JoinTablePage() {
   const [tables, setTables] = useState([]);
@@ -12,11 +14,8 @@ function JoinTablePage() {
   const [column2, setColumn2] = useState("");
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
-  const [density, setDensity] = useState("compact"); // Default density set to "compact"
+  const [density, setDensity] = useState("compact");
 
-  const gridApiRef = useGridApiRef(); // Hook to manage the grid API
-
-  // Fetch table list from backend
   useEffect(() => {
     fetch("/api/tables")
       .then((response) => response.json())
@@ -24,7 +23,6 @@ function JoinTablePage() {
       .catch((err) => console.error("Error fetching tables:", err));
   }, []);
 
-  // Fetch columns for table 1
   useEffect(() => {
     if (!table1) return;
 
@@ -34,7 +32,6 @@ function JoinTablePage() {
       .catch((err) => console.error("Error fetching columns for table 1:", err));
   }, [table1]);
 
-  // Fetch columns for table 2
   useEffect(() => {
     if (!table2) return;
 
@@ -44,7 +41,6 @@ function JoinTablePage() {
       .catch((err) => console.error("Error fetching columns for table 2:", err));
   }, [table2]);
 
-  // Fetch join data
   const fetchJoinData = () => {
     if (!table1 || !table2 || !column1 || !column2) {
       alert("Please fill all fields before performing the join.");
@@ -59,21 +55,56 @@ function JoinTablePage() {
         if (data.length === 0) {
           alert("No data available for the join.");
         }
-        const rowsWithId = data.map((row, index) => ({
-          id: index + 1,
-          ...row,
-        }));
 
         const allColumns = columns.map((field) => ({
-          field,
-          headerName: field.charAt(0).toUpperCase() + field.slice(1),
-          editable: true,
+          accessorKey: field,
+          header: field.charAt(0).toUpperCase() + field.slice(1),
         }));
 
-        setRows(rowsWithId);
+        setRows(data);
         setColumns(allColumns);
       })
       .catch((err) => console.error("Error fetching join data:", err));
+  };
+
+  const columnHeaders = useMemo(
+    () =>
+      columns.map((col) => ({
+        key: col.accessorKey,
+        displayLabel: col.header,
+      })),
+    [columns]
+  );
+
+  const csvConfig = useMemo(
+    () =>
+      mkConfig({
+        filename: "joined-table",
+        useKeysAsHeaders: false,
+        columnHeaders,
+      }),
+    [columnHeaders]
+  );
+
+  const handleExportCsv = () => {
+    if (!rows.length) {
+      alert("No data to export.");
+      return;
+    }
+    const csv = generateCsv(csvConfig)(rows);
+    download(csvConfig)(csv);
+  };
+
+  const handleExportExcel = () => {
+    if (!rows.length) {
+      alert("No data to export.");
+      return;
+    }
+    const headers = columns.map((col) => col.accessorKey);
+    const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "JoinedData");
+    XLSX.writeFile(workbook, "joined-table.xlsx");
   };
 
   return (
@@ -86,7 +117,6 @@ function JoinTablePage() {
       }}
     >
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        {/* Select table 1 */}
         <TextField
           select
           label="Table 1"
@@ -101,7 +131,6 @@ function JoinTablePage() {
           ))}
         </TextField>
 
-        {/* Select table 2 */}
         <TextField
           select
           label="Table 2"
@@ -116,7 +145,6 @@ function JoinTablePage() {
           ))}
         </TextField>
 
-        {/* Select column from table 1 */}
         <TextField
           select
           label="Column from Table 1"
@@ -133,7 +161,6 @@ function JoinTablePage() {
           ))}
         </TextField>
 
-        {/* Select column from table 2 */}
         <TextField
           select
           label="Column from Table 2"
@@ -149,36 +176,33 @@ function JoinTablePage() {
           ))}
         </TextField>
 
-        {/* Fetch join data button */}
         <Button
           variant="contained"
           onClick={fetchJoinData}
-          style={{ minWidth: 150, backgroundColor: '#3f51b5', color: '#fff', '&:hover': { backgroundColor: '#303f9f' }}}
+          style={{ minWidth: 150, backgroundColor: "#3f51b5", color: "#fff" }}
         >
           Fetch Data
         </Button>
 
-        {/* Export buttons - Visible only when data is loaded */}
         {rows.length > 0 && (
           <>
             <Button
               variant="contained"
-              onClick={() => gridApiRef.current.exportDataAsCsv()}
-              style={{ minWidth: 150, backgroundColor: '#3f51b5', color: '#fff', '&:hover': { backgroundColor: '#303f9f' }}}
+              onClick={handleExportCsv}
+              style={{ minWidth: 150, backgroundColor: "#3f51b5", color: "#fff" }}
             >
               Export as CSV
             </Button>
             <Button
               variant="contained"
-              onClick={() => gridApiRef.current.exportDataAsExcel()}
-              style={{ minWidth: 150, backgroundColor: '#3f51b5', color: '#fff', '&:hover': { backgroundColor: '#303f9f' }}}
+              onClick={handleExportExcel}
+              style={{ minWidth: 150, backgroundColor: "#3f51b5", color: "#fff" }}
             >
               Export as Excel
             </Button>
           </>
         )}
 
-        {/* Grid density selection */}
         <TextField
           select
           label="Grid Density"
@@ -187,19 +211,23 @@ function JoinTablePage() {
           style={{ minWidth: 150 }}
         >
           <MenuItem value="compact">Compact</MenuItem>
-          <MenuItem value="standard">Standard</MenuItem>
           <MenuItem value="comfortable">Comfortable</MenuItem>
+          <MenuItem value="spacious">Spacious</MenuItem>
         </TextField>
       </div>
 
       <div style={{ height: "700px", overflow: "auto" }}>
-        <DataGridPremium
-          rows={rows}
+        <MaterialReactTable
           columns={columns}
-          pageSize={10}
-          checkboxSelection
-          density={density}
-          apiRef={gridApiRef}
+          data={rows}
+          enableRowSelection
+          enableDensityToggle={false}
+          enableStickyHeader
+          onDensityChange={setDensity}
+          state={{ density }}
+          getRowId={(_, index) => index.toString()}
+          initialState={{ pagination: { pageSize: 10, pageIndex: 0 } }}
+          muiTableContainerProps={{ sx: { maxHeight: "700px" } }}
         />
       </div>
     </div>
