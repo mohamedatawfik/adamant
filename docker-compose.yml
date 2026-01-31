@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+# back-end
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    image: adamant-server
+    volumes:
+      - ./backend/conf:/app/conf
+      - ./backend/schemas:/app/schemas
+ # front-end 
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    image: adamant-client
+    ports:
+      - "3000:80"
